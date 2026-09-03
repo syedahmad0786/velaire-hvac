@@ -7,7 +7,7 @@ Client: ChatGPT desktop in-app browser with native page-scoped WebMCP discovery
 
 ## Result
 
-Pass. The original complete agreement journey ran through native WebMCP calls and visible human controls. The shared-case release adds a production D1 case service for two independent role links and exposes 28 customer tools on `/` and `/demo/customer`, 19 owner tools on `/demo/owner`, 13 foundation/operations tools on `/demo/operations`, 1 evidence lookup tool, and 1 receipt lookup tool. The shared transport was exercised through the public Vercel origin and the visible customer/owner pages.
+Pass. The original complete agreement journey ran through native WebMCP calls and visible human controls. The shared-case release adds a production D1 case service for two independent role links and exposes 29 customer tools on `/` and `/demo/customer`, 19 owner tools on `/demo/owner`, 13 foundation/operations tools on `/demo/operations`, 1 evidence lookup tool, and 1 receipt lookup tool. The shared transport was exercised through the public Vercel origin and the visible customer/owner pages.
 
 The live shared-case proof created `SC-5428CFDC`: open returned `AWAITING_OWNER` at revision 1; owner staging returned `AWAITING_HUMAN` without exposing the draft to the customer; human send returned revision 2; customer wait returned the $195 offer; customer counter returned revision 3; owner wait returned that customer event. A separate browser proof created `SC-2A908925`, opened its private owner URL, human-sent the offer, and showed revision 2, the event graph, confirmed service-area text, Google Maps search, and OpenStreetMap search on the customer URL. Capability tokens are intentionally omitted from this report.
 
@@ -56,6 +56,7 @@ These records are intentionally synthetic. Earlier agreement records were browse
 | `velaire_get_service_case` | Read the authoritative case after owner and customer events | `OK`; private owner drafts were absent from customer output. |
 | `velaire_set_service_location` | Store confirmed synthetic service-area text | `OK`; returned map-search inputs without geocoding or coordinate claims. |
 | `velaire_get_case_visuals` | Read the shared case at revision 2 | `OK`; returned graph nodes/edges, Mermaid, canonical graph URL, totals, and two map-search URLs. |
+| `velaire_plan_service_route` | Plan from the fictional West Town dispatch area to customer-confirmed Lincoln Park at a fixed departure time | `OK`; returned a 15–30 minute synthetic planning band, calculated arrival range, service-window authority, and direct Google/Apple driving URLs. It explicitly reported no live traffic, GPS, geocoding, or arrival promise. |
 | `velaire_wait_for_owner_reply` | Owner sent a visible reply within the wait window | `OK`; the pending call resolved on the newer owner event. |
 | `velaire_wait_for_owner_reply` | No event in one 15-second-or-shorter round | `STILL_WAITING`; returned a cursor and changed nothing, allowing bounded re-polling. |
 | `velaire_submit_case_message` | Stale revision, then current revision counteroffer | `STALE_REVISION` with no mutation, followed by `OK` for the valid counter. |
@@ -99,7 +100,7 @@ No agent-callable tool exists for sending an owner draft, confirming a booking, 
 | `npm run typecheck` | Pass. |
 | `npm run build` | Pass: production Vite bundle generated. |
 | `npm audit --audit-level=high` | Pass: 0 vulnerabilities. |
-| Customer discovery immediately after reload | Pass: exactly 28 tools. |
+| Customer discovery immediately after reload | Pass: exactly 29 tools. |
 | Owner discovery | Pass: exactly 19 tools and no customer booking tool. |
 | Operations discovery | Pass: exactly 13 tools. |
 | Live operations dashboard | Pass: successful, invalid-input, and stale-revision calls appeared without recording inputs or outputs. |
