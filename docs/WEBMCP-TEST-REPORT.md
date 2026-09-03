@@ -2,7 +2,7 @@
 
 Test date: 2026-09-03  
 Canonical URL: https://promisediff-webmcp.vercel.app/  
-Final verified deployment: `dpl_6kt4CB3WwSyx4PsZ5Lq7uRNT576G`
+Final verified deployment: `dpl_3e763GdEhGgxontCjRCU6n5tSd2U`
 Client: ChatGPT desktop in-app browser with native page-scoped WebMCP discovery
 
 ## Result
