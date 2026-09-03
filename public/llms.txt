@@ -2,10 +2,12 @@
 
 > Velaire is a fictional, WebMCP-native Chicago HVAC service demonstration. Agents can check fit, inspect evidence, open and follow service cases, negotiate, prepare bookings, and compare changed work. Only visible human controls can send or approve commitments.
 
+When this page is open in a supporting agent browser, it automatically registers the tools for that page. The user does not install, connect, or assign a separate WebMCP chatbot; they ask their existing browser agent in the same chat.
+
 ## Primary routes
 
 - [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 10 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
-- [Customer AI service desk](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 10 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
+- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 10 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
 - [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 5 owner WebMCP tools that can read cases and stage private replies, offers, or change orders. Sending remains a human action.
 - [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
 

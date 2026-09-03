@@ -53,18 +53,24 @@ function Logo() {
 }
 
 function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus | null }) {
+  const agentStatus = status === null
+    ? "Checking agent access"
+    : status.supported
+      ? `AI agent ready · ${status.registered.length} tools`
+      : "Use with ChatGPT";
   return <>
     <header className="topbar">
       <Logo />
       <nav aria-label="Primary navigation">
         <a href="/#services">Services</a>
-        <a href="/demo/customer?judge=1">AI service desk</a>
+        <a href="/#agent-access">Use with ChatGPT</a>
+        <a href="/demo/customer?judge=1">Service room</a>
         <a href="/demo/owner">Owner portal</a>
       </nav>
-      <div className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} title={status?.errors.join("\n") || undefined}>
+      <a className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} href="/#agent-access" title={status?.errors.join("\n") || undefined}>
         <span aria-hidden="true" />
-        {status?.supported ? `${status.registered.length} WebMCP tools live` : "Human mode ready"}
-      </div>
+        {agentStatus}
+      </a>
     </header>
     {children}
     <footer><Logo /><p>Precision comfort. Clearly agreed.</p><span>Chicago service-area demo · WebMCP native</span></footer>
@@ -75,7 +81,59 @@ function SyntheticFlag() {
   return <span className="synthetic-flag">Fictional demo</span>;
 }
 
-function Landing() {
+const STARTER_PROMPT = "Use Velaire's WebMCP tools to check whether same-day AC service is available for an AC blowing warm air in 60614, with a budget ceiling of $180. Show me the published evidence and exact terms before opening a service case. Do not approve a booking or changed work for me.";
+
+function AgentGuide({ status, serviceCase, compact = false }: { status: WebMCPStatus | null; serviceCase?: ServiceCase; compact?: boolean }) {
+  const [copyLabel, setCopyLabel] = useState("Copy message");
+  const prompt = serviceCase
+    ? `Use Velaire's WebMCP tools to get the latest status of service case ${serviceCase.id}. Summarize any new reply, offer, or change order, compare it with the accepted terms, and stop before any human approval.`
+    : STARTER_PROMPT;
+  const connected = status?.supported === true;
+  const headline = status === null
+    ? "Checking whether your AI agent can use this page…"
+    : connected
+      ? "Ask in your ChatGPT chat. Velaire is ready."
+      : "Open this page in ChatGPT, then ask in that chat.";
+  const copyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopyLabel("Copied to clipboard");
+    } catch {
+      setCopyLabel("Select the message, then copy");
+    }
+  };
+
+  return <aside id={compact ? undefined : "agent-access"} className={`agent-guide ${compact ? "compact" : ""}`} aria-label="Use Velaire with your AI agent">
+    <div className="agent-guide-status">
+      <span className={connected ? "live-orb" : "standby-orb"} aria-hidden="true" />
+      <div><span>AI AGENT ACCESS</span><strong>{connected ? "Connected to this page" : "WebMCP-ready website"}</strong></div>
+      <em>{connected ? `${status.registered.length} TOOLS READY` : "NO MANUAL SETUP"}</em>
+    </div>
+    <div className="agent-guide-body">
+      <div className="agent-guide-instructions">
+        <h2>{headline}</h2>
+        <p>WebMCP is the bridge—not another chatbot. It lets the AI agent in your current chat use Velaire’s structured service tools.</p>
+        <ol aria-label="How to use the AI agent">
+          <li><span>1</span><b>Open this page in ChatGPT</b></li>
+          <li><span>2</span><b>Ask in the same chat</b></li>
+          <li><span>3</span><b>Review and approve here</b></li>
+        </ol>
+        {serviceCase && <a className="active-case-link" href={`/demo/customer?case=${serviceCase.id}&judge=1`}><span>ACTIVE CASE</span><b>{serviceCase.id} · revision {serviceCase.revision}</b></a>}
+      </div>
+      <div className="agent-prompt-panel">
+        <label htmlFor={`agent-prompt-${compact ? "desk" : "home"}`}>Message to send in your ChatGPT chat</label>
+        <textarea id={`agent-prompt-${compact ? "desk" : "home"}`} value={prompt} readOnly rows={compact ? 4 : 6} onFocus={(event) => event.currentTarget.select()} />
+        <div className="agent-guide-actions">
+          <button className="button copper" type="button" onClick={copyPrompt}>{copyLabel}</button>
+          {!compact && <a href="/demo/customer?judge=1">Open service room <span aria-hidden="true">→</span></a>}
+        </div>
+      </div>
+    </div>
+    <small className="agent-boundary">The agent can read and prepare. Only you can approve a booking or changed work.</small>
+  </aside>;
+}
+
+function Landing({ status }: { status: WebMCPStatus | null }) {
   const state = usePromiseDiffState();
   const activeCase = state.cases[0];
   return <main className="service-site">
@@ -88,8 +146,8 @@ function Landing() {
           <h1>Comfort without<br />the fine print.</h1>
           <p className="lede">Expert heating and cooling service with published ranges, written terms, and your approval before anything changes.</p>
           <div className="button-row">
-            <a className="button primary" href="/demo/customer?judge=1">Start a service request <span aria-hidden="true">→</span></a>
-            <a className="button glass" href="#services">Explore services</a>
+            <a className="button primary" href="#agent-access">Use with my AI agent <span aria-hidden="true">→</span></a>
+            <a className="button glass" href="/demo/customer?judge=1">Request service myself</a>
           </div>
           <div className="hero-trust" aria-label="Service assurances">
             <span><b>01</b> Published price bands</span>
@@ -97,19 +155,7 @@ function Landing() {
             <span><b>03</b> Written change orders</span>
           </div>
         </div>
-        <aside className="agent-concierge" aria-label="AI service concierge">
-          <div className="concierge-head"><span className="live-orb" aria-hidden="true" /><div><b>AI service concierge</b><small>10 WebMCP tools available</small></div><em>LIVE</em></div>
-          {activeCase ? <div className="active-case-card">
-            <span>ACTIVE SERVICE CASE</span>
-            <strong>{activeCase.problemSummary}</strong>
-            <p>{activeCase.id} · revision {activeCase.revision}</p>
-            <a href={`/demo/customer?case=${activeCase.id}&judge=1`}>Continue agreement <span aria-hidden="true">→</span></a>
-          </div> : <>
-            <p>Ask your agent to check service fit, inspect our evidence, open a request, negotiate terms, or compare changed work.</p>
-            <div className="agent-example"><span>TRY ASKING</span><q>My AC is blowing warm air in 60614. Can you check same-day fit under $180?</q></div>
-          </>}
-          <small className="concierge-boundary">Agents prepare · you approve</small>
-        </aside>
+        <AgentGuide status={status} serviceCase={activeCase} />
       </div>
       <div className="hero-service-strip">
         <span><b>Service area</b> 60610 · 60613 · 60614 · 60657</span>
@@ -146,11 +192,11 @@ function Landing() {
     </section>
 
     <section className="agent-native-section">
-      <div><p className="eyebrow light">Built for people and their agents</p><h2>The same service desk, whether you click or ask.</h2><p>Velaire exposes structured tools for fit, evidence, requests, replies, offer comparison, booking preparation, immutable receipts, and change-order review. Every tool uses the same visible case as the human interface.</p><a className="button copper" href="/demo/customer?judge=1">Open the AI service desk <span aria-hidden="true">→</span></a></div>
-      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>10</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Agent reads <i>→</i> agent stages <i>→</i> <b>human approves</b> <i>→</i> receipt locks</p></div>
+      <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can call the tools offered by this page to check fit, inspect evidence, create a request, compare offers, and prepare the next step in the same visible service case.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
+      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>10</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Your ChatGPT chat <i>→</i> Velaire tools <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
     </section>
 
-    <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Start with clear terms.</h2><a className="button primary" href="/demo/customer?judge=1">Check service fit <span aria-hidden="true">→</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
+    <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
   </main>;
 }
 
@@ -359,13 +405,14 @@ function CustomerCase({ serviceCase, judge }: { serviceCase: ServiceCase; judge:
   </>;
 }
 
-function CustomerPage() {
+function CustomerPage({ status }: { status: WebMCPStatus | null }) {
   const state = usePromiseDiffState();
   const params = new URLSearchParams(window.location.search);
   const selected = params.get("case");
   const serviceCase = state.cases.find((item) => item.id === selected) ?? (selected ? undefined : state.cases[0]);
   return <main className="app-page customer-page">
     <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm("Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer?judge=1"); } }}>Reset demo</button></div>
+    <AgentGuide status={status} serviceCase={serviceCase} compact />
     {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={params.get("judge") === "1"} /> : <Storefront />}
   </main>;
 }
@@ -409,8 +456,8 @@ export function App() {
   const route = routeKind(pathname);
   const webMCP = useWebMCP(route);
   let page: ReactNode;
-  if (pathname === "/") page = <Landing />;
-  else if (pathname === "/demo/customer") page = <CustomerPage />;
+  if (pathname === "/") page = <Landing status={webMCP} />;
+  else if (pathname === "/demo/customer") page = <CustomerPage status={webMCP} />;
   else if (pathname === "/demo/owner") page = <OwnerPage />;
   else if (pathname.startsWith("/evidence/")) page = <EvidencePage sourceId={decodeURIComponent(pathname.slice("/evidence/".length))} />;
   else if (pathname.startsWith("/receipt/")) page = <ReceiptPage receiptId={decodeURIComponent(pathname.slice("/receipt/".length))} />;

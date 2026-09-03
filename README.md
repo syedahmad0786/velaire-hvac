@@ -6,6 +6,14 @@ The synthetic HVAC demo tells one complete story:
 
 > Service discovery → evidence check → request → owner reply → negotiation → human-approved booking → unexpected change-order comparison.
 
+## Try it with ChatGPT
+
+1. Open the Velaire website in an agent-enabled ChatGPT browser.
+2. Keep the page open and ask in that same chat: “Use Velaire's WebMCP tools to check same-day AC service in 60614 under a $180 ceiling. Show the evidence before creating anything.”
+3. Review every staged offer, booking, or change order on the page. The agent cannot complete the human approval controls.
+
+There is no separate WebMCP account or connector to assign. The open page registers its route-specific tools automatically for the browser agent.
+
 ## Why it is WebMCP-native
 
 The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate MCP server, extension, screen scraping layer, or AgentLane runtime dependency.
