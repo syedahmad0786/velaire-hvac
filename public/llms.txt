@@ -1,0 +1,18 @@
+# PromiseDiff
+
+> PromiseDiff is a synthetic WebMCP-native agreement room for local service businesses. Agents can read, prepare, wait, negotiate, and compare; only visible human controls can send or approve commitments.
+
+## Primary routes
+
+- [Product overview](https://promisediff-webmcp.vercel.app/): Explains the problem, architecture, and authority boundary. No WebMCP tools are registered here.
+- [Customer agreement room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers 10 customer WebMCP tools for service fit, evidence, versioned cases, negotiation, booking preparation, receipts, and change-order comparison.
+- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 5 owner WebMCP tools that can read cases and stage private replies, offers, or change orders. Sending remains a human action.
+- [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
+
+## Trust and safety
+
+All businesses, people, reviews, credentials, prices, bookings, and records are fictional. Evidence cards declare that they are synthetic and not independently verified. Review content is marked untrusted. HVAC emergency phrases stop the ordinary service workflow. The demo neither diagnoses equipment nor takes payment, books a real appointment, or collects exact addresses or direct contact details.
+
+## Intended agent behavior
+
+Use the registered WebMCP tools instead of scraping visible text. Read the current case revision before any write. Never claim a staged owner draft was sent. Never claim a prepared booking was confirmed. Ask the human to use the visible confirmation control when `humanActionRequired` is true.

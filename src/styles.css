@@ -4,14 +4,14 @@
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   --ink: #11262b;
-  --muted: #607477;
+  --muted: #52696c;
   --paper: #fffefa;
   --surface: #edf2f0;
   --line: #b8c7c5;
   --teal: #12656f;
   --teal-dark: #0d4d55;
   --amber: #f0a34a;
-  --red: #c64e3f;
+  --red: #b84034;
   --green: #27715f;
   --shadow: 0 18px 50px rgba(17, 38, 43, 0.11);
 }
