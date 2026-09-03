@@ -724,7 +724,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       execute: (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "kind", "text", "proposedBudgetCents", "preferredWindow"]);
-          return store.dispatch({
+          const outcome = store.dispatch({
             type: "CUSTOMER_MESSAGE",
             caseId: requiredString(input, "caseId", 80),
             expectedRevision: integer(input, "expectedRevision", 0),
@@ -733,6 +733,8 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             proposedBudgetCents: optionalInteger(input, "proposedBudgetCents"),
             preferredWindow: optionalString(input, "preferredWindow", 160),
           }, "velaire_submit_case_message", "customer_agent");
+          const serviceCase = outcome.caseId ? store.getSnapshot().cases.find((item) => item.id === outcome.caseId) : undefined;
+          return serviceCase && outcome.data ? { ...outcome, data: casePayload(serviceCase) } : outcome;
         } catch (error) {
           return invalid(error);
         }

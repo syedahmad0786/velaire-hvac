@@ -312,6 +312,7 @@ const SAFETY_PHRASES = [
   "sparking",
   "sparks",
   "smoke",
+  "fire",
   "on fire",
   "carbon monoxide",
   "co alarm",
@@ -330,7 +331,9 @@ const defaultContext: RuntimeContext = {
 
 export function hasSafetyStop(text: string): boolean {
   const normalized = text.toLowerCase();
-  return SAFETY_PHRASES.some((phrase) => normalized.includes(phrase));
+  const terms = SAFETY_PHRASES.map((phrase) => phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const negatedList = new RegExp(`\\b(?:no|without)\\s+(?:signs?\\s+of\\s+)?(?:${terms})(?:(?:\\s*,\\s*(?:(?:and|or)\\s+)?|\\s+(?:and|or)\\s+)(?:${terms}))*`, "g");
+  return new RegExp(`\\b(?:${terms})\\b`).test(normalized.replace(negatedList, " "));
 }
 
 export function checkServiceFit(input: {
@@ -1051,7 +1054,10 @@ export function compareChangeOrder(serviceCase: ServiceCase, changeOrderId: stri
   const changeOrder = serviceCase.changeOrders.find((item) => item.id === changeOrderId);
   if (!receipt || !changeOrder) return undefined;
   const accepted = receipt.acceptedOffer;
-  const words = (value: string) => value.toLowerCase().match(/[a-z0-9]+/g)?.map((word) => word.replace(/s$/, "")) ?? [];
+  const words = (value: string) => value.toLowerCase().match(/[a-z0-9]+/g)?.map((word) => {
+    const singular = word.replace(/s$/, "");
+    return ["replacement", "replaced", "replacing"].includes(singular) ? "replace" : singular;
+  }) ?? [];
   const excludedWords = new Set(accepted.exclusions.flatMap(words));
   const explicitlyExcluded = changeOrder.addedScope.filter((added) =>
     words(added).some((word) => word.length > 3 && excludedWords.has(word)),

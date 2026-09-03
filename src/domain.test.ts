@@ -69,6 +69,11 @@ describe("Velaire agreement boundary", () => {
     expect(result.code).toBe("SAFETY_STOP");
     expect(store.getSnapshot().cases).toHaveLength(0);
     expect(checkServiceFit({ need: "CO alarm is sounding", postcode: "60614", urgency: "same_day" }).safetyStatus).toBe("stop_and_seek_emergency_help");
+    expect(checkServiceFit({
+      need: "AC is warm, with no smoke, sparks, fire, gas smell, or carbon monoxide alarm.",
+      postcode: "60614",
+      urgency: "same_day",
+    }).safetyStatus).toBe("standard_service_flow");
   });
 
   it("keeps drafts private, revisions writes, snapshots acceptance, and diffs changed work", () => {
@@ -127,6 +132,10 @@ describe("Velaire agreement boundary", () => {
     const comparison = compareChangeOrder(serviceCase, change.id)!;
     expect(comparison.proposedTotalCents).toBe(32000);
     expect(comparison.explicitlyExcluded).toEqual(["Replacement part: capacitor"]);
+    const wordingVariant = structuredClone(serviceCase);
+    wordingVariant.receipt!.acceptedOffer.exclusions = ["Replacement parts", "Refrigerant"];
+    wordingVariant.changeOrders[0].addedScope = ["Replace failed capacitor"];
+    expect(compareChangeOrder(wordingVariant, change.id)?.explicitlyExcluded).toEqual(["Replace failed capacitor"]);
     send(store, { type: "DECIDE_CHANGE_ORDER", caseId, changeOrderId: change.id, decision: "rejected" });
     expect(store.getSnapshot().cases[0].receipt?.acceptedOffer.totalCents).toBe(17500);
 
@@ -180,7 +189,7 @@ describe("Velaire agreement boundary", () => {
     const store = new PromiseDiffStore(initialState());
     const caseId = openCase(store);
     send(store, { type: "STAGE_OWNER_REPLY", caseId, expectedRevision: 1, text: "Private draft" });
-    const fakeWindow = { location: { origin: "https://example.test" } } as unknown as Window;
+    const fakeWindow = { location: { origin: "https://example.test" }, dispatchEvent: vi.fn() } as unknown as Window;
     Object.defineProperty(fakeWindow, "top", { value: fakeWindow });
     vi.stubGlobal("window", fakeWindow);
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
@@ -196,6 +205,11 @@ describe("Velaire agreement boundary", () => {
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
     expect(customerRead.data).not.toHaveProperty("ownerDraft");
+    const customerWrite = await registrations.find((tool) => tool.name === "velaire_submit_case_message")!.execute(
+      { caseId, expectedRevision: 1, kind: "question", text: "Please confirm availability." },
+      { signal: new AbortController().signal },
+    ) as { data: Record<string, unknown> };
+    expect(customerWrite.data).not.toHaveProperty("ownerDraft");
     const unexpected = await registrations.find((tool) => tool.name === "velaire_check_service_fit")!.execute(
       { need: "warm air", postcode: "60614", urgency: "same_day", unexpected: true },
       { signal: new AbortController().signal },
