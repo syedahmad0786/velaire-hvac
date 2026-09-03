@@ -223,12 +223,12 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
     </section>
 
     <section className="service-section evidence-feature">
-      <div className="section-heading compact"><div><p className="eyebrow">Proof before persuasion</p><h2>Policies your agent can actually inspect.</h2></div><p>Each claim carries a canonical source, publisher, freshness date, and honest trust label.</p></div>
+      <div className="section-heading compact"><div><p className="eyebrow">Proof before persuasion</p><h2>Policies you can actually inspect.</h2></div><p>Each claim carries a canonical source, publisher, freshness date, and honest trust label—for you and your assistant.</p></div>
       <EvidenceCards />
     </section>
 
     <section className="operations-preview">
-      <div><p className="eyebrow light">Evidence becomes operations</p><h2>From price signal<br />to proof of work.</h2><p>Agents can inspect the values behind a sourced market chart, prepare a 3–10 day delivery plan, and expose every tool result and handler latency on one visible board.</p><a className="button copper" href="/demo/operations">Open agent operations <span aria-hidden="true">→</span></a></div>
+      <div><p className="eyebrow light">Evidence becomes operations</p><h2>From price signal<br />to proof of work.</h2><p>Inspect the values behind a sourced market chart, prepare a 3–10 day delivery plan, and review assistant activity and response time on one visible board.</p><a className="button copper" href="/demo/operations">Open service insights <span aria-hidden="true">→</span></a></div>
       <div className="operations-preview-visual" aria-hidden="true"><span>HVAC CONTRACTOR INDEX · BLS/FRED</span><svg viewBox="0 0 440 170"><path d="M8 131 L67 88 L126 86 L185 85 L244 127 L303 105 L362 96 L432 24" /><line x1="8" y1="145" x2="432" y2="145" /><line x1="8" y1="15" x2="8" y2="145" /></svg><div><b>180.452</b><i>DEC 2025</i><strong>+3.64%</strong><i>JUL 2026</i><b>187.025</b></div></div>
     </section>
 
@@ -466,7 +466,7 @@ function ChangeOrderPanel({ serviceCase }: { serviceCase: ServiceCase }) {
 
 function AuditRail({ audit, caseId }: { audit: AuditEvent[]; caseId: string }) {
   const items = audit.filter((item) => item.caseId === caseId).slice(-8).reverse();
-  return <section className="audit-rail"><div className="panel-heading"><h2>Decision trail</h2><span>append-only</span></div>{items.length ? <ol>{items.map((item) => <li key={item.id}><i className={item.code === "OK" || item.code === "AWAITING_OWNER" || item.code === "AWAITING_HUMAN" ? "ok" : "warn"} /><div><b>{item.operation.replaceAll("_", " ")}</b><span>{item.actor.replaceAll("_", " ")} · {item.code}</span><small>rev {item.beforeRevision} → {item.afterRevision}</small></div></li>)}</ol> : <p>No recorded commands yet.</p>}</section>;
+  return <section className="audit-rail"><div className="panel-heading"><h2>Decision trail</h2><span>append-only</span></div>{items.length ? <ol>{items.map((item) => <li key={item.id}><i className={item.code === "OK" || item.code === "AWAITING_OWNER" || item.code === "AWAITING_HUMAN" ? "ok" : "warn"} /><div><b>{capabilityLabel(item.operation)}</b><span>{titleCase(item.actor)} · {titleCase(item.code)}</span><small>rev {item.beforeRevision} → {item.afterRevision}</small></div></li>)}</ol> : <p>No recorded actions yet.</p>}</section>;
 }
 
 function stageDemoOffer(serviceCase: ServiceCase) {
