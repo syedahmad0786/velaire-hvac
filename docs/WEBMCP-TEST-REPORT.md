@@ -1,22 +1,24 @@
 # Velaire WebMCP production test report
 
-Test date: 2026-09-03  
-Canonical URL: https://promisediff-webmcp.vercel.app/  
-Final verified deployment: `dpl_3e763GdEhGgxontCjRCU6n5tSd2U`
+Test date: 2026-09-04
+Canonical URL: https://promisediff-webmcp.vercel.app/
+Release: durable two-chat service cases
 Client: ChatGPT desktop in-app browser with native page-scoped WebMCP discovery
 
 ## Result
 
-Pass. The complete synthetic customer-owner journey ran through native WebMCP calls and visible human controls. The final deployment exposes 26 customer tools on `/` and `/demo/customer`, 18 owner tools on `/demo/owner`, 13 foundation/operations tools on `/demo/operations`, 1 evidence lookup tool, and 1 receipt lookup tool. No unresolved browser-console, build, route-isolation, state-integrity, or dependency-audit error remains.
+Pass. The original complete agreement journey ran through native WebMCP calls and visible human controls. The shared-case release adds a production D1 case service for two independent role links and exposes 28 customer tools on `/` and `/demo/customer`, 19 owner tools on `/demo/owner`, 13 foundation/operations tools on `/demo/operations`, 1 evidence lookup tool, and 1 receipt lookup tool. The shared transport was exercised through the public Vercel origin and the visible customer/owner pages.
 
-The browser-local test artifacts were:
+The live shared-case proof created `SC-5428CFDC`: open returned `AWAITING_OWNER` at revision 1; owner staging returned `AWAITING_HUMAN` without exposing the draft to the customer; human send returned revision 2; customer wait returned the $195 offer; customer counter returned revision 3; owner wait returned that customer event. A separate browser proof created `SC-2A908925`, opened its private owner URL, human-sent the offer, and showed revision 2, the event graph, confirmed service-area text, Google Maps search, and OpenStreetMap search on the customer URL. Capability tokens are intentionally omitted from this report.
+
+Earlier native journey artifacts were:
 
 - Service case `SC-99347A6B`, revision 5.
 - Receipt `RCPT-33892F5B` for accepted offer V1.
 - Pending change order `CO-5BD530EA`.
 - Project plan revision 2, 10-day equipment-replacement draft.
 
-These records are intentionally synthetic and exist only in the test browser's local storage.
+These records are intentionally synthetic. Earlier agreement records were browser-local; new shared cases are durable demo records addressed by separate customer and owner bearer-capability URLs.
 
 ## Production calls
 
@@ -52,8 +54,10 @@ These records are intentionally synthetic and exist only in the test browser's l
 | `velaire_get_project_preflight` | 60614 multifamily rooftop heat-pump upgrade | `OK`; returned checklist, unresolved questions, official source URLs, statuses, and 2026-09-03 freshness dates. |
 | `velaire_open_service_case` | Bounded HVAC request without contact, address, or payment data | `AWAITING_OWNER`; created revision 1 and no booking. |
 | `velaire_get_service_case` | Read the authoritative case after owner and customer events | `OK`; private owner drafts were absent from customer output. |
+| `velaire_set_service_location` | Store confirmed synthetic service-area text | `OK`; returned map-search inputs without geocoding or coordinate claims. |
+| `velaire_get_case_visuals` | Read the shared case at revision 2 | `OK`; returned graph nodes/edges, Mermaid, canonical graph URL, totals, and two map-search URLs. |
 | `velaire_wait_for_owner_reply` | Owner sent a visible reply within the wait window | `OK`; the pending call resolved on the newer owner event. |
-| `velaire_wait_for_owner_reply` | No event after revision 5 for one second | `WAIT_EXPIRED`; revision stayed 5 and the case remained recoverable. |
+| `velaire_wait_for_owner_reply` | No event in one 15-second-or-shorter round | `STILL_WAITING`; returned a cursor and changed nothing, allowing bounded re-polling. |
 | `velaire_submit_case_message` | Stale revision, then current revision counteroffer | `STALE_REVISION` with no mutation, followed by `OK` for the valid counter. |
 | `velaire_compare_offer_versions` | Offer V1 at $195 versus V2 at $175 | `OK`; reported the $20 decrease and term-level differences. |
 | `velaire_prepare_booking` | Superseded V1, then current V2 | V1 rejected; V2 returned `AWAITING_HUMAN`. The visible customer control created the receipt. |
@@ -70,6 +74,7 @@ These records are intentionally synthetic and exist only in the test browser's l
 | `velaire_stage_owner_reply` | Stage acknowledgement | `AWAITING_HUMAN`; the customer could not see it until the visible owner Send action. |
 | `velaire_stage_service_offer` | Stage initial and revised offers | `AWAITING_HUMAN`; each offer became public only after visible owner Send. |
 | `velaire_stage_change_order` | Stage +$145 changed work | `AWAITING_HUMAN`; the visible owner Send action created the pending proposal. |
+| `velaire_wait_for_customer_reply` | Customer counter followed owner revision 2 | `OK`; the owner retrieved the customer event at revision 3 without changing state. |
 | `velaire_get_evidence_source` | `/evidence/pricing` | `OK`; this route discovered only its one lookup tool. |
 | `velaire_get_receipt_snapshot` | `/receipt/RCPT-33892F5B` | `OK`; this route discovered only its one immutable-receipt tool. |
 
@@ -90,19 +95,19 @@ No agent-callable tool exists for sending an owner draft, confirming a booking, 
 
 | Check | Result |
 |---|---|
-| `npm test` | Pass: 1 file, 7 tests. |
+| `npm test` | Pass: 2 files, 9 tests, including an in-memory D1 role-privacy/wait exchange. |
 | `npm run typecheck` | Pass. |
 | `npm run build` | Pass: production Vite bundle generated. |
 | `npm audit --audit-level=high` | Pass: 0 vulnerabilities. |
-| Customer discovery immediately after reload | Pass: exactly 26 tools. |
-| Owner discovery | Pass: exactly 18 tools and no customer booking tool. |
+| Customer discovery immediately after reload | Pass: exactly 28 tools. |
+| Owner discovery | Pass: exactly 19 tools and no customer booking tool. |
 | Operations discovery | Pass: exactly 13 tools. |
 | Live operations dashboard | Pass: successful, invalid-input, and stale-revision calls appeared without recording inputs or outputs. |
 | Responsive layout | Pass: desktop and 390×844 mobile browser checks. |
 | Evidence and receipt discovery | Pass: exactly 1 read-only lookup tool each. |
-| Cross-tab synchronization | Pass: owner human commits were visible to the customer tool surface. |
-| Refresh persistence | Pass: revision 8 and its receipt/change order survived navigation and refresh. |
-| Browser console | Pass: no console entries on the final landing-page check. |
+| Separate-role synchronization | Pass: owner human commit was visible at revision 2 on the customer capability URL; customer counter was visible at revision 3 on the owner capability URL. |
+| Refresh persistence | Pass: shared cases reload from D1 through the public same-origin API. |
+| Browser console | Pass: zero application errors. A stock Playwright browser without the WebMCP origin trial emitted the expected unsupported `tools` Permissions-Policy warning; the WebMCP-capable ChatGPT browser is the target. |
 | HTTP | Pass: canonical route returned 200. |
 | `Permissions-Policy` | `tools=(self)`. |
 | `Origin-Agent-Cluster` | `?1`. |
@@ -111,4 +116,4 @@ No agent-callable tool exists for sending an owner draft, confirming a booking, 
 
 ## Deliberate production boundaries
 
-This judged build does not claim live market pricing, legal or tax advice, permit eligibility, rebate eligibility, Google review ingestion, video understanding, real payment, real calendar booking, cross-device persistence, or authenticated provider access. `docs/ADVANCED-TOOLS.md` specifies the minimum server-side, credential, consent, source-freshness, and provenance controls required before adding those capabilities.
+This judged build does not claim live local market pricing, legal or tax advice, permit eligibility, rebate eligibility, Google review ingestion, video understanding, real payment, real calendar booking, or production identity authentication. Shared demo cases are durable and usable across devices through bearer-capability links; those links must be replaced by tenant identity, authorization, rotation, and revocation controls before production use. `docs/ADVANCED-TOOLS.md` specifies the minimum credential, consent, source-freshness, and provenance controls required before adding the other capabilities.

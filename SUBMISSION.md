@@ -17,7 +17,7 @@ Velaire turns an HVAC website into an observable service-operations and agreemen
 
 Local service work has a promise problem. A customer sees one range, negotiates another price in chat, approves a specific scope, and may later receive a changed-work request or invoice that no longer matches what they remember accepting. Search can find a contractor. A booking form can reserve a slot. Neither preserves the complete agreement.
 
-Velaire is a fictional premium HVAC website built around one authoritative ServiceCase. The website exposes native, page-scoped WebMCP tools to the customer's browser agent and a separate provider route. A 13-tool foundation makes normal website content machine-actionable: manifest, search, services, service area, policies, safe contact routes, and workflow help. The same layer adds a sourced BLS/FRED market chart with inspectable values, a revision-checked 3–10 day project timeline and Kanban, and privacy-safe live tool telemetry. The agreement tools then check fit, assemble a permit and incentive preflight, open a bounded request, wait for a human owner reply, negotiate structured offers, prepare exact confirmation, compare changed work, and trace invoice lines to approved terms.
+Velaire is a fictional premium HVAC website built around one authoritative ServiceCase. The website exposes native, page-scoped WebMCP tools to a customer agent and a separate owner agent in two independent ChatGPT chats. Private role links address the same durable case. A 13-tool foundation makes normal website content machine-actionable: manifest, search, services, service area, policies, safe contact routes, and workflow help. The same layer adds a sourced BLS/FRED market chart with inspectable values, a revision-checked 3–10 day project timeline and Kanban, and privacy-safe live tool telemetry. The agreement tools check fit, assemble a permit and incentive preflight, open a request, exchange structured offers, return a case graph and map-search links, prepare exact confirmation, compare changed work, and trace invoice lines to approved terms.
 
 The unusual part is the authority model. The provider agent can stage a reply, offer, or change order, but the customer cannot see it until the owner presses a visible Send control. The customer agent can prepare the latest unexpired offer, but only the customer can confirm it in the page. The immutable receipt stores the complete accepted terms. A later change or invoice is compared with that snapshot, not with a mutable current screen.
 
@@ -31,14 +31,14 @@ WebMCP is not an added chat widget or a remote MCP server here. The website itse
 
 ## Key WebMCP details
 
-- 13 shared foundation/operations tools, 13 customer agreement tools, 5 owner tools, 1 evidence-page tool, and 1 receipt-page tool: 26 on customer routes and 18 on the owner route.
+- 13 shared foundation/operations tools, 15 customer agreement tools, 6 owner tools, 1 evidence-page tool, and 1 receipt-page tool: 28 on customer routes and 19 on the owner route.
 - Route isolation prevents customer and owner capabilities from appearing together.
 - Closed JSON Schemas and runtime allowlists reject unknown fields.
 - Every state-changing tool uses an expected revision to reject stale writes.
-- Owner replies can resolve a pending asynchronous customer tool call.
-- Browser cancellation and a 20-second timeout leave the case recoverable.
+- Owner and customer events are retrieved in 15-second cancellable wait rounds, with a cursor for cooperative re-polling up to 120 seconds.
+- The browser host may end any call; `STILL_WAITING` leaves the durable case recoverable.
 - Emergency phrases such as smoke, sparks, gas smell, fire, or a carbon-monoxide alarm stop ordinary booking.
-- Exact addresses, direct contact identifiers, and payment details are excluded from tool schemas.
+- Direct contact identifiers and payment details are excluded. Customer-supplied service-location text requires explicit confirmation and is never presented as geocoded or verified.
 - Reviews and customer-authored text are marked as untrusted.
 - Permit and incentive routes carry a checked date and refuse to decide eligibility.
 - Market output returns every BLS/FRED chart value and states that the series is national/nonresidential, not a Chicago residential quote or fairness score.
@@ -48,7 +48,7 @@ WebMCP is not an added chat widget or a remote MCP server here. The website itse
 
 ## Technology
 
-React 19, TypeScript 7 strict mode, Vite 8, native imperative WebMCP, a pure TypeScript state machine, localStorage, BroadcastChannel, browser custom events, AbortSignal, Vitest, Vercel, and ChatGPT Sites. No LLM API, WebMCP SDK, database, authentication provider, calendar, payment processor, or messaging credential is required for the judged demonstration.
+React 19, TypeScript 7 strict mode, Vite 8, native imperative WebMCP, one pure TypeScript state machine, a private ChatGPT Sites Worker with D1, a same-origin Vercel Edge proxy, role capability links, localStorage/BroadcastChannel UI support, AbortSignal, and Vitest. No LLM API, WebMCP SDK, external authentication provider, calendar, payment processor, or messaging credential is required for the judged demonstration.
 
 ## What makes it original
 
@@ -71,10 +71,10 @@ The same agreement primitive can support plumbers, electricians, roofers, applia
 ## Testing instructions for judges
 
 1. Open https://promisediff-webmcp.vercel.app/demo/operations in ChatGPT's in-app browser. Confirm 13 tools and run the operations prompt below; watch the timeline and telemetry update.
-2. Open https://promisediff-webmcp.vercel.app/demo/customer?judge=1 and confirm 26 customer tools.
-3. Open a service case and keep its case ID.
-4. Ask the agent to wait for the owner. In the visible judge simulator, stage an offer, verify it stays private, and press `Human: send offer`.
-5. Counter, human-send the revision, and ask the agent to compare versions.
+2. In customer ChatGPT chat A, open https://promisediff-webmcp.vercel.app/demo/customer and confirm 28 customer tools.
+3. Open a service case, keep its case code, and copy the private owner invite without exposing its token in the recording.
+4. In owner ChatGPT chat B, open that invite and confirm 19 owner tools. Stage an offer, verify it stays private, then press `Human: send offer`.
+5. In chat A, retrieve the offer and case visuals, then counter. In chat B, retrieve the counter, human-send the revision, and let chat A compare versions.
 6. Ask the agent to prepare the latest offer. Confirm `AWAITING_HUMAN`, then use the visible customer confirmation button.
 7. Stage and human-send the $145 capacitor change order. Compare it with the accepted receipt.
 8. Audit a fictional invoice and reopen Agent ops to show the complete tool-call ledger.
@@ -96,7 +96,7 @@ Get the project preflight for a heat-pump upgrade at a multifamily rooftop prope
 ```
 
 ```text
-Open an AC diagnostic case for today from 2 to 4 PM with a $180 ceiling, no surprise travel fee, and approval required before added work. Then wait up to 20 seconds for the owner.
+Open an AC diagnostic case for today from 2 to 4 PM with a $180 ceiling, no surprise travel fee, and approval required before added work. Return the private owner invite. Then wait in 15-second rounds for at most 120 seconds total, using the returned cursor.
 ```
 
 ```text
@@ -127,15 +127,15 @@ Open `/demo/operations`. Show 13 discovered tools. Ask for the market context an
 
 ### 0:38 to 0:55 - Customer foundation
 
-Open `/demo/customer?judge=1`. Show 26 tools. Ask ChatGPT to check same-day fit, published evidence, and the transparent planning range. Point to the direct source URLs and refusal to invent eligibility or a local market price.
+In customer ChatGPT chat A, open `/demo/customer`. Show 28 tools. Ask it to check same-day fit, published evidence, and the transparent planning range, then create the synthetic case and copy the private owner invite.
 
 ### 0:55 to 1:18 - Case and asynchronous owner
 
-Ask ChatGPT to open the warm-air case and wait for the owner. Stage the $195 offer in the judge simulator. Show that the customer still sees no offer. Press `Human: send offer`; the pending call receives the new revision.
+Open the private invite in owner ChatGPT chat B. Show 19 owner-route tools. Ask the owner agent to stage the $195 offer; verify the customer still sees no draft. Press `Human: send offer`, then let chat A retrieve revision 2 and open the returned case graph and Google Maps search link.
 
 ### 1:18 to 1:38 - Negotiation
 
-Ask ChatGPT to counter at $175 with no after-hours surcharge. Stage and human-send the revised offer. Ask it to compare version 1 with version 2 and show the exact $20 reduction.
+In chat A, counter at $175 with no after-hours surcharge. In chat B, wait for that customer revision, stage and human-send the revised offer. In chat A, compare versions and show the exact $20 reduction.
 
 ### 1:38 to 1:58 - Human booking boundary
 
@@ -157,7 +157,8 @@ Return to Agent ops and show the success/error codes and p95. “Agents do the c
 
 - Record at 1080p with browser zoom at 100 percent.
 - Keep the final public YouTube video under three minutes and include clear audio.
-- Show native tool discovery, not only button clicks.
+- Show native tool discovery in both independent ChatGPT chats, not only button clicks.
+- Keep the private capability tokens out of the final video; show only the case code and role labels.
 - Show the sourced chart values, one plan revision, and the live observability ledger.
 - Show one private owner draft before the human sends it.
 - Show `AWAITING_HUMAN`, the immutable receipt, the change diff, and the invoice audit.

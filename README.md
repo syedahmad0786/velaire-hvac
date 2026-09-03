@@ -1,6 +1,6 @@
 # Velaire Heating & Air
 
-Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room and service-operations board. An agent can search the site, inspect source cards and an official BLS/FRED market signal, prepare a 3–10 day project plan, open and negotiate a service case, and audit later changes or invoices. The business can stage replies and offers. Humans retain every commitment. A privacy-safe dashboard shows every browser-local tool result and handler latency live.
+Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room and service-operations board. Separate customer and owner agents can collaborate through one durable service case while each human retains every commitment. Agents can search the site, inspect source cards and an official BLS/FRED market signal, prepare a 3–10 day project plan, negotiate, and audit later changes or invoices. A privacy-safe dashboard shows browser-local tool results and handler latency live.
 
 The synthetic HVAC demo tells one complete story:
 
@@ -8,18 +8,20 @@ The synthetic HVAC demo tells one complete story:
 
 ## Try it with ChatGPT
 
-1. Open the Velaire website in an agent-enabled ChatGPT browser.
-2. Keep the page open and ask in that same chat: “Use Velaire's WebMCP tools to check same-day AC service in 60614 under a $180 ceiling. Show the evidence before creating anything.”
-3. Review every staged offer, booking, or change order on the page. The agent cannot complete the human approval controls.
+1. In customer ChatGPT chat A, open `/demo/customer` and ask: “Use Velaire's WebMCP tools to check same-day AC service in 60614 under a $180 ceiling. Show the evidence, then open the synthetic case.”
+2. Copy the private owner invite shown after creation and open it in owner ChatGPT chat B.
+3. Let the owner agent stage a reply or offer, then let the owner press the visible **Send** control.
+4. The customer agent can wait in 15-second rounds, retrieve the new revision, and return structured terms, the case graph URL, and map-search URLs.
+5. Review every booking or changed-work decision on its own page. Neither agent has an approval tool.
 
 There is no separate WebMCP account or connector to assign. The open page registers its route-specific tools automatically for the browser agent.
 
 ## Why it is WebMCP-native
 
-The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate MCP server, extension, screen scraping layer, or AgentLane runtime dependency.
+The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate remote MCP server, extension, screen-scraping layer, or AgentLane runtime dependency. A same-origin case API persists the shared business state; it does not replace the page-native WebMCP surface.
 
-- `/` and `/demo/customer` expose 13 foundation/operations tools plus 13 customer agreement tools: 26 total.
-- `/demo/owner` exposes the same 13 foundation/operations tools plus 5 owner tools: 18 total.
+- `/` and `/demo/customer` expose 13 foundation/operations tools plus 15 customer agreement tools: 28 total.
+- `/demo/owner` exposes the same 13 foundation/operations tools plus 6 owner tools: 19 total.
 - `/demo/operations` exposes the 13 foundation/operations tools beside the sourced chart, timeline, Kanban, and telemetry views.
 - `/evidence/:sourceId` exposes one canonical evidence lookup.
 - `/receipt/:receiptId` exposes one immutable receipt lookup.
@@ -34,20 +36,25 @@ flowchart LR
     CH[Customer human] -->|Visible confirmations| CR
     OA[Optional provider agent] -->|Owner WebMCP tools| OR[Owner route]
     OH[Business owner] -->|Send staged content| OR
-    CR --> CG[Shared command gateway]
-    OR --> CG
+    CR --> API[Same-origin case API]
+    OR --> API
+    API --> WK[Private Sites Worker]
+    WK --> D1[(D1 durable case)]
+    WK --> CG[Shared command gateway]
     OP[Market + project + telemetry board] --> OG[Operations store]
     CA -->|Foundation/operations tools| OP
     CG --> VG[Validation + safety + revision gates]
     VG --> SM[Pure TypeScript state machine]
-    SM --> LS[(localStorage)]
-    SM --> BC[BroadcastChannel]
+    SM --> D1
+    SM --> LS[(local UI mirror)]
+    SM --> BC[Polling + BroadcastChannel]
     SM --> AL[Append-only audit trail]
-    BC --> WR[Cancellable owner-reply waiter]
+    D1 --> WR[Cancellable role-scoped waiter]
     WR --> CA
+    WR --> OA
 ```
 
-The human UI and every WebMCP handler dispatch through the same reducer. A draft can change local private state, but it cannot create a customer-visible case revision. Only the matching human Send or Confirm action commits it.
+The human UI and every WebMCP handler dispatch through the same reducer. Role-specific capability URLs address one D1-backed case, and only token hashes are stored. A private draft cannot create a customer-visible revision; only the matching human Send or Confirm action commits it.
 
 ```mermaid
 stateDiagram-v2
@@ -92,7 +99,9 @@ stateDiagram-v2
 | `velaire_get_project_preflight` | Returns a project checklist and freshness-dated official source routes. |
 | `velaire_open_service_case` | Creates a bounded case; never books or charges. |
 | `velaire_get_service_case` | Reads authoritative case state and valid next actions. |
-| `velaire_wait_for_owner_reply` | Waits 1–20 seconds for a newer human-sent owner event. |
+| `velaire_set_service_location` | Stores customer-supplied location text only with explicit confirmation; never geocodes it. |
+| `velaire_get_case_visuals` | Returns graph nodes, edges, Mermaid text, a canonical graph URL, and map-search URLs. |
+| `velaire_wait_for_owner_reply` | Waits up to 15 seconds for a newer owner event and returns a cursor for bounded cooperative re-polling. |
 | `velaire_submit_case_message` | Adds a version-checked question or counteroffer. |
 | `velaire_compare_offer_versions` | Deterministically compares two sent offers. |
 | `velaire_prepare_booking` | Stages the latest offer for visible human confirmation. |
@@ -109,6 +118,7 @@ stateDiagram-v2
 | `velaire_stage_owner_reply` | Creates a private reply draft. |
 | `velaire_stage_service_offer` | Creates a private structured offer draft. |
 | `velaire_stage_change_order` | Creates a private structured change-order draft. |
+| `velaire_wait_for_customer_reply` | Waits up to 15 seconds for a newer customer event and returns a re-poll cursor. |
 
 There is intentionally no agent tool for sending an owner draft, confirming a booking, accepting changed work, or taking payment.
 
@@ -118,11 +128,12 @@ There is intentionally no agent tool for sending an owner draft, confirming a bo
 - **Route:** customer and owner tools are isolated.
 - **Input:** closed JSON Schemas plus runtime validation and bounded arrays/text.
 - **HVAC safety:** gas smell, sparks, smoke, fire, or carbon-monoxide language stops ordinary booking.
-- **Privacy:** schemas exclude exact addresses, payment data, phone numbers, and email addresses.
+- **Privacy:** schemas exclude payment data, phone numbers, and email addresses. Customer-supplied service-location text requires explicit confirmation and is returned only as unverified map-search input.
 - **Revision:** state-changing tools must match the current case revision.
 - **Offer:** only the latest sent and unexpired offer can be prepared.
 - **Human:** sending offers, confirming booking, and deciding change orders stay in visible UI.
-- **Async:** waiting is capped at 20 seconds and cleans up on `AbortSignal`.
+- **Async:** each wait is capped at 15 seconds, cleans up on `AbortSignal`, and can be cooperatively repeated for at most 120 seconds. The browser host may end any call.
+- **Capability:** customer and owner links carry separate random bearer capabilities; the database stores only their SHA-256 hashes.
 - **Evidence:** reviews are marked synthetic, untrusted, and not independently verified.
 - **Official-source freshness:** permit and incentive output states when each route was checked and refuses to decide eligibility.
 - **Invoice lineage:** a charge is not treated as authorized unless it traces to the accepted offer or a human-approved change order.
@@ -152,20 +163,18 @@ Chrome's WebMCP implementation must be enabled for native discovery. Every page 
 
 ## Demo path
 
-1. Open `/demo/operations`; ask the agent to inspect the sourced chart, prepare a 7-day plan, and read live WebMCP health.
-2. Open `/demo/customer?judge=1` and create the pre-filled warm-air request.
-3. In the judge simulator, stage a `$195` offer. Notice that the customer timeline does not change.
-4. Press **Human: send offer**. The sent offer becomes revision 2.
-5. Send the pre-filled `$175` counteroffer and human-send the revised offer.
-6. Prepare the latest version. Then use the separate human confirmation gate.
-7. Stage and human-send the `+$145` capacitor change order.
-8. Review the deterministic comparison against the immutable accepted snapshot.
+1. In customer ChatGPT chat A, open `/demo/customer`, create the pre-filled warm-air request, and copy its owner invite.
+2. In owner ChatGPT chat B, open that private invite. Ask the owner agent to stage the `$195` offer, then press **Human: send offer**.
+3. In chat A, call `velaire_wait_for_owner_reply`; it receives revision 2. Call `velaire_get_case_visuals` to show structured graph data plus the graph and map URLs.
+4. Send the pre-filled `$175` counteroffer. In chat B, call `velaire_wait_for_customer_reply`, stage the revised offer, and human-send it.
+5. In chat A, compare versions, prepare the latest version, and use the separate human confirmation gate.
+6. In chat B, stage and human-send the `+$145` capacitor change order. In chat A, compare it against the immutable receipt.
 
-For a two-tab demonstration, use `/demo/customer` and `/demo/owner`; `BroadcastChannel` synchronizes the case locally.
+The backend, not tab-local storage, synchronizes the private role URLs. The lightweight page poll keeps both visible views current; the wait tools provide bounded agent-side retrieval.
 
 ## Deliberate boundaries
 
-This judged build uses synthetic fixtures and browser-local persistence. It does not include real payment, calendars, Google reviews, live video analysis, Slack, WhatsApp, CRM, multi-tenant authentication, or cross-device persistence. Those integrations require consent, provider credentials, server-side authorization, provenance refresh, signed external events, and durable storage. They are documented as production extensions rather than simulated as completed features.
+This judged build uses synthetic fixtures and a durable D1-backed demo case. Capability links permit separate devices/chats, but they are not production identity or tenant authentication. The build does not include real payment, calendars, Google reviews, live video analysis, Slack, WhatsApp, or CRM. Those integrations require consent, provider credentials, stronger server-side authorization, provenance refresh, and signed external events; they are documented as extensions rather than simulated as completed features.
 
 ## Submission evidence
 

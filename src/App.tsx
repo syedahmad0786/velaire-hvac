@@ -219,7 +219,7 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
 
     <section className="agent-native-section">
       <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can check fit, build a transparent planning range, route permit and incentive questions to freshness-dated official sources, negotiate exact terms, and audit a later invoice against the promise you approved.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
-      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>26</strong><span>Customer tools</span></div><div><strong>18</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Foundation + HVAC intelligence <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
+      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>28</strong><span>Customer tools</span></div><div><strong>19</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Foundation + HVAC intelligence <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
     </section>
 
     <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
