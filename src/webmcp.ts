@@ -141,15 +141,17 @@ function ownerRevision(serviceCase: ServiceCase): number {
   );
 }
 
-function casePayload(serviceCase: ServiceCase) {
+function casePayload(serviceCase: ServiceCase, includeOwnerDraft = false) {
+  const { ownerDraft, ...customerSafeCase } = serviceCase;
   return {
-    ...serviceCase,
+    ...customerSafeCase,
+    ...(includeOwnerDraft && ownerDraft ? { ownerDraft } : {}),
     pendingHumanAction:
       serviceCase.status === "booking_prepared"
         ? "Customer must confirm or cancel the displayed booking terms."
         : serviceCase.status === "change_pending"
           ? "Customer must accept or reject the displayed change order."
-          : serviceCase.ownerDraft
+          : includeOwnerDraft && ownerDraft
             ? "Owner has a private draft that must be sent from the owner page."
             : null,
     customerUrl: canonical(`/demo/customer?case=${encodeURIComponent(serviceCase.id)}`),
@@ -303,7 +305,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     {
       name: "promisediff_open_service_case",
       title: "Open service case",
-      description: "Creates a bounded synthetic HVAC service case for owner review. It never books an appointment, charges payment, or collect exact address, phone, email, or payment details.",
+      description: "Creates a bounded synthetic HVAC service case for owner review. It never books an appointment, charges payment, or collects an exact address, phone, email, or payment details.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -527,7 +529,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
           const input = record(value);
           const caseId = requiredString(input, "caseId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
-          return serviceCase ? readResult(casePayload(serviceCase), serviceCase.revision, caseId) : notFound(`Service case ${caseId}`);
+          return serviceCase ? readResult(casePayload(serviceCase, true), serviceCase.revision, caseId) : notFound(`Service case ${caseId}`);
         } catch (error) { return invalid(error); }
       },
     },

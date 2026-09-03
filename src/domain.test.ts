@@ -127,20 +127,30 @@ describe("PromiseDiff agreement boundary", () => {
   });
 
   it("registers exactly the route-scoped tool surface", async () => {
-    const registrations: string[] = [];
+    const registrations: WebMCPTool[] = [];
+    const store = new PromiseDiffStore(initialState());
+    const caseId = openCase(store);
+    send(store, { type: "STAGE_OWNER_REPLY", caseId, expectedRevision: 1, text: "Private draft" });
     const fakeWindow = { location: { origin: "https://example.test" } } as unknown as Window;
     Object.defineProperty(fakeWindow, "top", { value: fakeWindow });
     vi.stubGlobal("window", fakeWindow);
-    vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool.name); } } });
-    const store = new PromiseDiffStore(initialState());
+    vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
     expect(customer.registered).toHaveLength(10);
     expect(customer.registered).toContain("promisediff_compare_change_order");
+    const customerRead = await registrations.find((tool) => tool.name === "promisediff_get_service_case")!.execute(
+      { caseId }, { signal: new AbortController().signal },
+    ) as { data: Record<string, unknown> };
+    expect(customerRead.data).not.toHaveProperty("ownerDraft");
     customer.dispose();
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
     expect(owner.registered).toHaveLength(5);
     expect(owner.registered).not.toContain("promisediff_prepare_booking");
+    const ownerRead = await registrations.find((tool) => tool.name === "promisediff_get_owner_case")!.execute(
+      { caseId }, { signal: new AbortController().signal },
+    ) as { data: Record<string, unknown> };
+    expect(ownerRead.data).toHaveProperty("ownerDraft");
     owner.dispose();
     vi.unstubAllGlobals();
   });

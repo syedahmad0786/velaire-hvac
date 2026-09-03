@@ -250,7 +250,7 @@ function CounterForm({ serviceCase }: { serviceCase: ServiceCase }) {
       preferredWindow: "Today, 2–4 PM",
     }, "human_submit_counteroffer", "customer_human");
   };
-  return <form className="counter-form" onSubmit={submit}><div><label htmlFor="counter-message">Question or counteroffer</label><textarea id="counter-message" name="message" rows={2} maxLength={1000} defaultValue="I can approve $175 maximum if there is no after-hours surcharge." required /></div><label>Max ($)<input name="budget" type="number" min={0} defaultValue={175} required /></label><button className="button dark" type="submit">Send to owner</button></form>;
+  return <form className="counter-form" onSubmit={submit}><div><label htmlFor="counter-message">Question or counteroffer</label><textarea id="counter-message" name="message" rows={2} maxLength={1000} defaultValue="I can approve $175 maximum if there is no after-hours surcharge." required /></div><label>Max ($)<input name="budget" type="number" min={0} max={100000} defaultValue={175} required /></label><button className="button dark" type="submit">Send to owner</button></form>;
 }
 
 function CustomerDecision({ serviceCase }: { serviceCase: ServiceCase }) {
