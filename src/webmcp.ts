@@ -1,10 +1,20 @@
 import {
+  auditInvoiceAgainstReceipt,
   checkServiceFit,
   compareChangeOrder,
   compareOfferVersions,
+  estimateServiceRange,
   getEvidence,
+  getProjectPreflight,
   nextActionsFor,
+  type BuildingType,
   type EvidenceTopic,
+  type EstimateAccess,
+  type InstallationLocation,
+  type InvoiceLineInput,
+  type InvoiceLineKind,
+  type KnownFinding,
+  type ProjectType,
   type ServiceCase,
   type ToolResult,
   type Urgency,
@@ -33,9 +43,12 @@ const MONEY = { type: "integer", minimum: 0, maximum: 10_000_000 };
 
 class InputError extends Error {}
 
-function record(value: unknown): Record<string, unknown> {
+function record(value: unknown, allowedKeys?: readonly string[]): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new InputError("Input must be an object.");
-  return value as Record<string, unknown>;
+  const input = value as Record<string, unknown>;
+  const extra = allowedKeys && Object.keys(input).find((key) => !allowedKeys.includes(key));
+  if (extra) throw new InputError(`Unknown input property: ${extra}.`);
+  return input;
 }
 
 function requiredString(input: Record<string, unknown>, key: string, max: number): string {
@@ -77,6 +90,22 @@ function strings(input: Record<string, unknown>, key: string, maxItems: number, 
       throw new InputError(`${key} contains an invalid item.`);
     }
     return item.trim();
+  });
+}
+
+function invoiceLines(input: Record<string, unknown>): InvoiceLineInput[] {
+  const value = input.lines;
+  if (!Array.isArray(value) || value.length < 1 || value.length > 30) {
+    throw new InputError("lines must contain from 1 to 30 items.");
+  }
+  return value.map((item) => {
+    const line = record(item, ["description", "amountCents", "kind", "authorizationRef"]);
+    return {
+      description: requiredString(line, "description", 240),
+      amountCents: integer(line, "amountCents", 0),
+      kind: oneOf<InvoiceLineKind>(line, "kind", ["accepted_offer", "approved_change", "tax_or_required_fee", "other"]),
+      authorizationRef: optionalString(line, "authorizationRef", 80),
+    };
   });
 }
 
@@ -248,7 +277,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["need", "postcode", "urgency", "budgetCents"]);
           const fit = checkServiceFit({
             need: requiredString(input, "need", 800),
             postcode: requiredString(input, "postcode", 12),
@@ -288,7 +317,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["topics"]);
           const topics = input.topics === undefined
             ? undefined
             : strings(input, "topics", 6, 30).map((topic) => {
@@ -297,6 +326,67 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
                 return topic as EvidenceTopic;
               });
           return readResult(getEvidence(topics).map((item) => ({ ...item, sourceUrl: canonical(item.canonicalPath) })));
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_estimate_service_range",
+      title: "Estimate transparent service range",
+      description: "Builds a factor-by-factor planning range from Velaire's fictional published rate card. Read-only; it is not local market data, a diagnosis, quote, booking, or promise of final price.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["serviceId", "urgency", "access", "knownFinding"],
+        properties: {
+          serviceId: { type: "string", enum: ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] },
+          urgency: { type: "string", enum: ["same_day", "next_3_days", "flexible"] },
+          access: { type: "string", enum: ["standard", "limited", "rooftop"] },
+          knownFinding: { type: "string", enum: ["unknown", "capacitor", "thermostat", "refrigerant", "compressor"] },
+        },
+      },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["serviceId", "urgency", "access", "knownFinding"]);
+          const estimate = estimateServiceRange({
+            serviceId: oneOf(input, "serviceId", ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] as const),
+            urgency: oneOf<Urgency>(input, "urgency", ["same_day", "next_3_days", "flexible"]),
+            access: oneOf<EstimateAccess>(input, "access", ["standard", "limited", "rooftop"]),
+            knownFinding: oneOf<KnownFinding>(input, "knownFinding", ["unknown", "capacitor", "thermostat", "refrigerant", "compressor"]),
+          });
+          return estimate ? readResult(estimate) : notFound("Service rate card");
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_get_project_preflight",
+      title: "Get permit and incentive preflight",
+      description: "Returns a project-specific document checklist and freshness-dated official Chicago, Illinois, utility, and federal source routes. Read-only; it does not determine jurisdiction, permit, code, tax, or rebate eligibility or submit forms.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["postcode", "projectType", "buildingType", "installationLocation"],
+        properties: {
+          postcode: text(12),
+          projectType: { type: "string", enum: ["diagnostic", "repair", "equipment_replacement", "heat_pump_upgrade"] },
+          buildingType: { type: "string", enum: ["single_family", "multifamily", "commercial"] },
+          installationLocation: { type: "string", enum: ["indoor", "outdoor_ground", "rooftop"] },
+        },
+      },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["postcode", "projectType", "buildingType", "installationLocation"]);
+          return readResult(getProjectPreflight({
+            postcode: requiredString(input, "postcode", 12),
+            projectType: oneOf<ProjectType>(input, "projectType", ["diagnostic", "repair", "equipment_replacement", "heat_pump_upgrade"]),
+            buildingType: oneOf<BuildingType>(input, "buildingType", ["single_family", "multifamily", "commercial"]),
+            installationLocation: oneOf<InstallationLocation>(input, "installationLocation", ["indoor", "outdoor_ground", "rooftop"]),
+          }));
         } catch (error) {
           return invalid(error);
         }
@@ -322,7 +412,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["serviceId", "problemSummary", "postcode", "urgency", "budgetCents", "preferredWindows", "constraints"]);
           return store.dispatch({
             type: "OPEN_CASE",
             serviceId: oneOf(input, "serviceId", ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] as const),
@@ -346,7 +436,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId"]);
           const caseId = requiredString(input, "caseId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           return serviceCase
@@ -370,7 +460,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: (value, options) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "afterRevision", "maxWaitSeconds"]);
           return waitForOwnerReply(
             store,
             requiredString(input, "caseId", 80),
@@ -402,7 +492,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "expectedRevision", "kind", "text", "proposedBudgetCents", "preferredWindow"]);
           return store.dispatch({
             type: "CUSTOMER_MESSAGE",
             caseId: requiredString(input, "caseId", 80),
@@ -428,7 +518,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "fromVersion", "toVersion"]);
           const caseId = requiredString(input, "caseId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           if (!serviceCase) return notFound(`Service case ${caseId}`);
@@ -449,7 +539,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "expectedRevision", "offerVersion"]);
           return store.dispatch({
             type: "PREPARE_BOOKING",
             caseId: requiredString(input, "caseId", 80),
@@ -469,7 +559,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["receiptId"]);
           const receiptId = requiredString(input, "receiptId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
           return serviceCase?.receipt
@@ -491,12 +581,54 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "changeOrderId"]);
           const caseId = requiredString(input, "caseId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           if (!serviceCase) return notFound(`Service case ${caseId}`);
           const comparison = compareChangeOrder(serviceCase, requiredString(input, "changeOrderId", 80));
           return comparison ? readResult(comparison, serviceCase.revision, caseId) : notFound("Change order or booking receipt");
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_audit_invoice_against_receipt",
+      title: "Audit invoice against approved terms",
+      description: "Traces each bounded invoice line to the immutable accepted offer or a human-approved change order and flags mismatches. Read-only; it does not accuse fraud, decide tax validity, dispute a charge, pay, refund, or modify the case.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["receiptId", "lines"],
+        properties: {
+          receiptId: text(80),
+          lines: {
+            type: "array",
+            minItems: 1,
+            maxItems: 30,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["description", "amountCents", "kind"],
+              properties: {
+                description: text(240),
+                amountCents: MONEY,
+                kind: { type: "string", enum: ["accepted_offer", "approved_change", "tax_or_required_fee", "other"] },
+                authorizationRef: text(80),
+              },
+            },
+          },
+        },
+      },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["receiptId", "lines"]);
+          const receiptId = requiredString(input, "receiptId", 80);
+          const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
+          if (!serviceCase) return notFound(`Receipt ${receiptId}`);
+          const audit = auditInvoiceAgainstReceipt(serviceCase, invoiceLines(input));
+          return audit ? readResult(audit, serviceCase.revision, serviceCase.id) : notFound(`Receipt ${receiptId}`);
         } catch (error) {
           return invalid(error);
         }
@@ -513,10 +645,15 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       description: "Lists the synthetic service-case queue with revision, status, summary, and owner deep link. Read-only.",
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: () => readResult(store.getSnapshot().cases.map((item) => ({
-        id: item.id, status: item.status, revision: item.revision, problemSummary: item.problemSummary,
-        postcode: item.postcode, ownerUrl: canonical(`/demo/owner?case=${encodeURIComponent(item.id)}`),
-      }))),
+      execute: (value) => {
+        try {
+          record(value, []);
+          return readResult(store.getSnapshot().cases.map((item) => ({
+            id: item.id, status: item.status, revision: item.revision, problemSummary: item.problemSummary,
+            postcode: item.postcode, ownerUrl: canonical(`/demo/owner?case=${encodeURIComponent(item.id)}`),
+          })));
+        } catch (error) { return invalid(error); }
+      },
     },
     {
       name: "velaire_get_owner_case",
@@ -526,7 +663,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId"]);
           const caseId = requiredString(input, "caseId", 80);
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           return serviceCase ? readResult(casePayload(serviceCase, true), serviceCase.revision, caseId) : notFound(`Service case ${caseId}`);
@@ -543,7 +680,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "expectedRevision", "text"]);
           return store.dispatch({ type: "STAGE_OWNER_REPLY", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"), text: requiredString(input, "text", 1000) }, "velaire_stage_owner_reply", "owner_agent");
         } catch (error) { return invalid(error); }
       },
@@ -563,7 +700,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "expectedRevision", "totalCents", "arrivalWindow", "includedScope", "exclusions", "depositCents", "warrantyDays", "expiresAt"]);
           return store.dispatch({
             type: "STAGE_OFFER", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"),
             totalCents: integer(input, "totalCents", 1), arrivalWindow: requiredString(input, "arrivalWindow", 160),
@@ -588,7 +725,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
       execute: (value) => {
         try {
-          const input = record(value);
+          const input = record(value, ["caseId", "expectedRevision", "reason", "addedScope", "removedScope", "deltaCents", "scheduleImpact"]);
           return store.dispatch({
             type: "STAGE_CHANGE_ORDER", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"),
             reason: requiredString(input, "reason", 600), addedScope: strings(input, "addedScope", 10),
@@ -610,7 +747,7 @@ function evidenceTool(): ToolDefinition[] {
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     execute: (value) => {
       try {
-        const input = record(value);
+        const input = record(value, ["sourceId"]);
         const sourceId = requiredString(input, "sourceId", 80);
         const source = getEvidence().find((item) => item.id === sourceId);
         return source ? readResult({ ...source, sourceUrl: canonical(source.canonicalPath) }) : notFound(`Evidence source ${sourceId}`);
@@ -628,7 +765,7 @@ function receiptTool(store: PromiseDiffStore): ToolDefinition[] {
     annotations: { readOnlyHint: true },
     execute: (value) => {
       try {
-        const input = record(value);
+        const input = record(value, ["receiptId"]);
         const receiptId = requiredString(input, "receiptId", 80);
         const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
         return serviceCase?.receipt ? readResult(serviceCase.receipt, serviceCase.revision, serviceCase.id) : notFound(`Receipt ${receiptId}`);
@@ -640,7 +777,8 @@ function receiptTool(store: PromiseDiffStore): ToolDefinition[] {
 export async function installWebMCP(store: PromiseDiffStore, route: ToolRoute): Promise<WebMCPStatus> {
   const controller = new AbortController();
   const status: WebMCPStatus = { supported: false, registered: [], errors: [], dispose: () => controller.abort() };
-  if (window.top !== window || !document.modelContext?.registerTool) return status;
+  const modelContext = document.modelContext;
+  if (window.top !== window || !modelContext?.registerTool) return status;
   status.supported = true;
   const tools = route === "customer" ? customerTools(store)
     : route === "owner" ? ownerTools(store)
@@ -648,13 +786,17 @@ export async function installWebMCP(store: PromiseDiffStore, route: ToolRoute): 
         : route === "receipt" ? receiptTool(store)
           : [];
 
-  for (const tool of tools) {
+  const errors = await Promise.all(tools.map(async (tool) => {
     try {
-      await document.modelContext.registerTool(tool, { signal: controller.signal });
-      status.registered.push(tool.name);
+      await modelContext.registerTool(tool, { signal: controller.signal });
+      return "";
     } catch (error) {
-      status.errors.push(`${tool.name}: ${error instanceof Error ? error.message : "registration failed"}`);
+      return `${tool.name}: ${error instanceof Error ? error.message : "registration failed"}`;
     }
-  }
+  }));
+  tools.forEach((tool, index) => {
+    if (errors[index]) status.errors.push(errors[index]);
+    else status.registered.push(tool.name);
+  });
   return status;
 }

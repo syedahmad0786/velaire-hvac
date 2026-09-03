@@ -1,6 +1,6 @@
 # Velaire Heating & Air
 
-Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room. A customer agent can discover services, inspect source cards, open a case, negotiate structured terms, prepare a booking, and compare changed work. The business can stage replies and offers. Humans retain every commitment.
+Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room. A customer agent can discover services, inspect source cards, build transparent planning ranges, route permit and incentive questions to official sources, open a case, negotiate structured terms, prepare a booking, and audit later changes or invoices. The business can stage replies and offers. Humans retain every commitment.
 
 The synthetic HVAC demo tells one complete story:
 
@@ -18,7 +18,7 @@ There is no separate WebMCP account or connector to assign. The open page regist
 
 The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate MCP server, extension, screen scraping layer, or AgentLane runtime dependency.
 
-- `/` and `/demo/customer` expose the same 10 customer tools.
+- `/` and `/demo/customer` expose the same 13 customer tools.
 - `/demo/owner` exposes 5 owner tools.
 - `/evidence/:sourceId` exposes one canonical evidence lookup.
 - `/receipt/:receiptId` exposes one immutable receipt lookup.
@@ -67,6 +67,8 @@ stateDiagram-v2
 |---|---|
 | `velaire_check_service_fit` | Reads service-area, pricing, prerequisites, and safety fit. |
 | `velaire_get_business_evidence` | Reads provenance-bearing synthetic source cards. |
+| `velaire_estimate_service_range` | Builds a transparent synthetic planning range with component assumptions. |
+| `velaire_get_project_preflight` | Returns a project checklist and freshness-dated official source routes. |
 | `velaire_open_service_case` | Creates a bounded case; never books or charges. |
 | `velaire_get_service_case` | Reads authoritative case state and valid next actions. |
 | `velaire_wait_for_owner_reply` | Waits 1–20 seconds for a newer human-sent owner event. |
@@ -75,6 +77,7 @@ stateDiagram-v2
 | `velaire_prepare_booking` | Stages the latest offer for visible human confirmation. |
 | `velaire_get_booking_receipt` | Reads the immutable accepted-term snapshot. |
 | `velaire_compare_change_order` | Compares later scope and price against that snapshot. |
+| `velaire_audit_invoice_against_receipt` | Traces invoice lines to accepted terms or approved changes. |
 
 ### Owner route
 
@@ -100,6 +103,8 @@ There is intentionally no agent tool for sending an owner draft, confirming a bo
 - **Human:** sending offers, confirming booking, and deciding change orders stay in visible UI.
 - **Async:** waiting is capped at 20 seconds and cleans up on `AbortSignal`.
 - **Evidence:** reviews are marked synthetic, untrusted, and not independently verified.
+- **Official-source freshness:** permit and incentive output states when each route was checked and refuses to decide eligibility.
+- **Invoice lineage:** a charge is not treated as authorized unless it traces to the accepted offer or a human-approved change order.
 - **Audit:** success and failure codes record their before/after revision effect.
 
 ## Local development
@@ -136,7 +141,14 @@ For a two-tab demonstration, use `/demo/customer` and `/demo/owner`; `BroadcastC
 
 ## Deliberate boundaries
 
-This judged build uses synthetic fixtures and browser-local persistence. It does not include real payment, calendars, Google reviews, Slack, WhatsApp, CRM, multi-tenant authentication, or cross-device persistence. A production owner route requires server-side identity, authorization, signed external event handling, and durable storage.
+This judged build uses synthetic fixtures and browser-local persistence. It does not include real payment, calendars, Google reviews, live video analysis, Slack, WhatsApp, CRM, multi-tenant authentication, or cross-device persistence. Those integrations require consent, provider credentials, server-side authorization, provenance refresh, signed external events, and durable storage. They are documented as production extensions rather than simulated as completed features.
+
+## Submission evidence
+
+- [WebMCP production test report](docs/WEBMCP-TEST-REPORT.md)
+- [Deployment and rollback guide](docs/DEPLOYMENT.md)
+- [Advanced-tool and production-extension notes](docs/ADVANCED-TOOLS.md)
+- [Copy-ready Devpost submission and demo script](SUBMISSION.md)
 
 ## Sources
 
@@ -144,5 +156,9 @@ This judged build uses synthetic fixtures and browser-local persistence. It does
 - [WebMCP specification](https://webmachinelearning.github.io/webmcp/)
 - [WebMCP Challenge rules](https://webmcp.devpost.com/rules)
 - [WebMCP directory API](https://webmcp.com/api-docs)
+- [City of Chicago permit guide](https://www.chicago.gov/city/en/sites/guide-to-building-permits/home.html)
+- [Illinois EPA home energy rebate updates](https://epa.illinois.gov/topics/energy/energy-rebates.html)
+- [ComEd incentives and financing](https://goelectric.comed.com/incentives-and-financing/)
+- [ENERGY STAR federal tax credit status](https://www.energystar.gov/about/federal-tax-credits)
 
 MIT licensed. All businesses, people, reviews, credentials, prices, bookings, and records in the demo are fictional.

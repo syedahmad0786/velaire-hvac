@@ -6,8 +6,8 @@ When this page is open in a supporting agent browser, it automatically registers
 
 ## Primary routes
 
-- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 10 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
-- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 10 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
+- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 13 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
+- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 13 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
 - [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 5 owner WebMCP tools that can read cases and stage private replies, offers, or change orders. Sending remains a human action.
 - [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
 
@@ -15,6 +15,8 @@ When this page is open in a supporting agent browser, it automatically registers
 
 - `velaire_check_service_fit`: Read-only service, postcode, urgency, budget, prerequisite, price-band, and emergency-fit check.
 - `velaire_get_business_evidence`: Read-only canonical pricing, credentials, availability, cancellation, warranty, and synthetic-review cards.
+- `velaire_estimate_service_range`: Read-only transparent planning range based only on the fictional Velaire rate card; never a quote or market benchmark.
+- `velaire_get_project_preflight`: Read-only project checklist plus freshness-dated official permit, rebate, utility, and federal source routes; never an eligibility decision.
 - `velaire_open_service_case`: Open a bounded request. It does not book, charge, diagnose equipment, or collect direct contact details.
 - `velaire_get_service_case`: Read the current case revision, sent terms, pending human decision, and valid next actions.
 - `velaire_wait_for_owner_reply`: Wait up to 20 seconds for a newer human-sent owner event; timeout and cancellation do not mutate state.
@@ -23,6 +25,7 @@ When this page is open in a supporting agent browser, it automatically registers
 - `velaire_prepare_booking`: Stage the latest unexpired offer for visible human confirmation; it cannot confirm or charge.
 - `velaire_get_booking_receipt`: Read the complete immutable accepted-term snapshot.
 - `velaire_compare_change_order`: Compare later price, scope, and timing against the accepted snapshot.
+- `velaire_audit_invoice_against_receipt`: Trace invoice lines to the accepted offer or human-approved change orders and flag unresolved charges without disputing or paying them.
 
 ## Owner tools
 

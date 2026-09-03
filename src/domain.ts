@@ -184,6 +184,20 @@ export interface AppState {
   audit: AuditEvent[];
 }
 
+export type EstimateAccess = "standard" | "limited" | "rooftop";
+export type KnownFinding = "unknown" | "capacitor" | "thermostat" | "refrigerant" | "compressor";
+export type ProjectType = "diagnostic" | "repair" | "equipment_replacement" | "heat_pump_upgrade";
+export type BuildingType = "single_family" | "multifamily" | "commercial";
+export type InstallationLocation = "indoor" | "outdoor_ground" | "rooftop";
+export type InvoiceLineKind = "accepted_offer" | "approved_change" | "tax_or_required_fee" | "other";
+
+export interface InvoiceLineInput {
+  description: string;
+  amountCents: number;
+  kind: InvoiceLineKind;
+  authorizationRef?: string;
+}
+
 export interface RuntimeContext {
   now: () => string;
   id: (prefix: string) => string;
@@ -1058,6 +1072,172 @@ export function compareChangeOrder(serviceCase: ServiceCase, changeOrderId: stri
         : [],
     decisionRequired: changeOrder.status === "pending",
     disclaimer: "This deterministic comparison does not decide whether the charge is justified.",
+  };
+}
+
+const ESTIMATE_ADJUSTMENTS: Record<
+  EstimateAccess | KnownFinding | "same_day",
+  { label: string; minCents: number; maxCents: number }
+> = {
+  standard: { label: "Standard equipment access", minCents: 0, maxCents: 0 },
+  limited: { label: "Limited equipment access", minCents: 2500, maxCents: 7500 },
+  rooftop: { label: "Rooftop access", minCents: 7500, maxCents: 18000 },
+  same_day: { label: "Same-day planning allowance", minCents: 0, maxCents: 4000 },
+  unknown: { label: "No part finding supplied", minCents: 0, maxCents: 0 },
+  capacitor: { label: "Synthetic capacitor part allowance", minCents: 9500, maxCents: 18000 },
+  thermostat: { label: "Synthetic thermostat allowance", minCents: 12000, maxCents: 35000 },
+  refrigerant: { label: "Synthetic refrigerant-work allowance", minCents: 18000, maxCents: 65000 },
+  compressor: { label: "Synthetic compressor-work allowance", minCents: 120000, maxCents: 300000 },
+};
+
+export function estimateServiceRange(input: {
+  serviceId: string;
+  urgency: Urgency;
+  access: EstimateAccess;
+  knownFinding: KnownFinding;
+}) {
+  const service = SERVICES.find((item) => item.id === input.serviceId);
+  if (!service) return undefined;
+  const components = [
+    { label: `${service.name} published band`, minCents: service.minCents, maxCents: service.maxCents },
+    ESTIMATE_ADJUSTMENTS[input.access],
+    ESTIMATE_ADJUSTMENTS[input.knownFinding],
+    ...(input.urgency === "same_day" ? [ESTIMATE_ADJUSTMENTS.same_day] : []),
+  ];
+  return {
+    currency: "USD" as const,
+    minCents: components.reduce((sum, item) => sum + item.minCents, 0),
+    maxCents: components.reduce((sum, item) => sum + item.maxCents, 0),
+    components,
+    basis: "Fictional Velaire demonstration rate card, not local market data.",
+    confidence: input.knownFinding === "unknown" ? "low_until_diagnostic" : "planning_only",
+    requiresOnsiteDiagnosis: input.serviceId !== "seasonal-tune-up",
+    disclaimer: "This transparent planning range is not an offer, diagnosis, market benchmark, or promise of final price.",
+  };
+}
+
+export function getProjectPreflight(input: {
+  postcode: string;
+  projectType: ProjectType;
+  buildingType: BuildingType;
+  installationLocation: InstallationLocation;
+}) {
+  const replacement = input.projectType === "equipment_replacement" || input.projectType === "heat_pump_upgrade";
+  const heatPump = input.projectType === "heat_pump_upgrade";
+  const checklist = [
+    "Written scope, exclusions, equipment make and model, and total price",
+    "Contractor identity, insurance, and any licence or registration required by the authority",
+    "Photos of the existing equipment and access route, with no people or personal documents visible",
+    ...(replacement ? ["Load-sizing basis, equipment efficiency certificate, electrical requirements, and disposal plan"] : []),
+    ...(heatPump ? ["Utility account eligibility and written incentive pre-approval before ordering equipment"] : []),
+    ...(input.installationLocation === "rooftop" ? ["Roof access, structural, landmark, condominium, or owner approval as applicable"] : []),
+    ...(input.buildingType !== "single_family" ? ["Property-owner or building-management authorization"] : []),
+  ];
+  return {
+    candidateJurisdiction: input.postcode.startsWith("606") ? "Chicago, Illinois" : "Outside the Chicago demo",
+    jurisdictionConfidence: "confirm_exact_address_with_the_local_authority",
+    supportedDemoPostcode: SERVICE_POSTCODES.has(input.postcode.trim()),
+    projectType: input.projectType,
+    checklist,
+    officialSources: [
+      {
+        authority: "City of Chicago Department of Buildings",
+        title: "Guide to building permits",
+        url: "https://www.chicago.gov/city/en/sites/guide-to-building-permits/home.html",
+        status: "confirm_permit_path_before_work",
+        checkedAt: "2026-09-03",
+        note: "The tool routes to the authority; it does not decide whether a permit is required.",
+      },
+      {
+        authority: "Illinois Environmental Protection Agency",
+        title: "Illinois home energy rebate program updates",
+        url: "https://epa.illinois.gov/topics/energy/energy-rebates.html",
+        status: heatPump ? "program_launch_pending_check_before_purchase" : "not_evaluated_for_this_project",
+        checkedAt: "2026-09-03",
+        note: "The official page says the state program is not retroactive and program-approved projects are required after launch.",
+      },
+      {
+        authority: "ComEd",
+        title: "Heating and cooling incentives and financing",
+        url: "https://goelectric.comed.com/incentives-and-financing/",
+        status: heatPump ? "possible_utility_discount_confirm_current_terms" : "not_evaluated_for_this_project",
+        checkedAt: "2026-09-03",
+        note: "Availability and eligibility depend on current program terms and utility service.",
+      },
+      {
+        authority: "ENERGY STAR",
+        title: "Federal tax credits for energy efficiency",
+        url: "https://www.energystar.gov/about/federal-tax-credits",
+        status: heatPump ? "prior_credit_ended_2025_do_not_assume_current" : "not_evaluated_for_this_project",
+        checkedAt: "2026-09-03",
+        note: "The current official page identifies the prior home-improvement credit period as ending December 31, 2025.",
+      },
+    ],
+    unresolvedQuestions: [
+      "Does the exact address fall under Chicago or another local permitting authority?",
+      "Does the final scope replace equipment, change electrical service, alter structure, or affect a roof?",
+      ...(heatPump ? ["Was incentive eligibility confirmed in writing before equipment purchase or installation?"] : []),
+    ],
+    disclaimer: "This is a source-linked readiness checklist, not legal, tax, permit, code, or rebate eligibility advice.",
+  };
+}
+
+export function auditInvoiceAgainstReceipt(serviceCase: ServiceCase, lines: InvoiceLineInput[]) {
+  const receipt = serviceCase.receipt;
+  if (!receipt) return undefined;
+  const acceptedChanges = serviceCase.changeOrders.filter((item) => item.status === "accepted");
+  const baseRef = `offer-v${receipt.acceptedOffer.version}`;
+  let baseSeen = false;
+  const changeRefs = new Set<string>();
+  const auditedLines = lines.map((line, index) => {
+    if (line.kind === "accepted_offer") {
+      const duplicate = baseSeen;
+      baseSeen = true;
+      const refMatches = line.authorizationRef === baseRef;
+      const amountMatches = line.amountCents === receipt.acceptedOffer.totalCents;
+      return {
+        index,
+        ...line,
+        status: duplicate ? "duplicate" : !refMatches ? "missing_or_wrong_reference" : amountMatches ? "authorized" : "amount_mismatch",
+        expectedRef: baseRef,
+        expectedCents: receipt.acceptedOffer.totalCents,
+      };
+    }
+    if (line.kind === "approved_change") {
+      const change = acceptedChanges.find((item) => item.id === line.authorizationRef);
+      const duplicate = line.authorizationRef ? changeRefs.has(line.authorizationRef) : false;
+      if (line.authorizationRef) changeRefs.add(line.authorizationRef);
+      return {
+        index,
+        ...line,
+        status: duplicate ? "duplicate" : !change ? "unapproved_or_missing_reference" : line.amountCents === change.deltaCents ? "authorized" : "amount_mismatch",
+        expectedCents: change?.deltaCents,
+      };
+    }
+    return {
+      index,
+      ...line,
+      status: "requires_human_review",
+      reason: line.kind === "tax_or_required_fee"
+        ? "The accepted snapshot does not independently authorize taxes or government fees."
+        : "The line is not linked to the accepted offer or a human-approved change order.",
+    };
+  });
+  const authorizedTotalCents = receipt.acceptedOffer.totalCents
+    + acceptedChanges.reduce((sum, item) => sum + item.deltaCents, 0);
+  const invoiceTotalCents = lines.reduce((sum, item) => sum + item.amountCents, 0);
+  const unresolved = auditedLines.filter((item) => item.status !== "authorized");
+  return {
+    receiptId: receipt.id,
+    caseId: serviceCase.id,
+    acceptedOfferRef: baseRef,
+    authorizedTotalCents,
+    invoiceTotalCents,
+    deltaFromAuthorizedCents: invoiceTotalCents - authorizedTotalCents,
+    allLinesTraceToHumanApproval: unresolved.length === 0 && invoiceTotalCents === authorizedTotalCents,
+    auditedLines,
+    unresolvedLineIndexes: unresolved.map((item) => item.index),
+    disclaimer: "This deterministic audit flags agreement mismatches. It does not determine fraud, tax validity, payment liability, or whether a charge is legally enforceable.",
   };
 }
 

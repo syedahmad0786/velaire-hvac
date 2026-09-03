@@ -81,7 +81,7 @@ function SyntheticFlag() {
   return <span className="synthetic-flag">Fictional demo</span>;
 }
 
-const STARTER_PROMPT = "Use Velaire's WebMCP tools to check whether same-day AC service is available for an AC blowing warm air in 60614, with a budget ceiling of $180. Show me the published evidence and exact terms before opening a service case. Do not approve a booking or changed work for me.";
+const STARTER_PROMPT = "Use Velaire's WebMCP tools to check whether same-day AC service is available for an AC blowing warm air in 60614, with a budget ceiling of $180. Show the published evidence and a transparent planning range before opening a service case. Do not approve a booking or changed work for me.";
 
 function AgentGuide({ status, serviceCase, compact = false }: { status: WebMCPStatus | null; serviceCase?: ServiceCase; compact?: boolean }) {
   const [copyLabel, setCopyLabel] = useState("Copy message");
@@ -192,8 +192,8 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
     </section>
 
     <section className="agent-native-section">
-      <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can call the tools offered by this page to check fit, inspect evidence, create a request, compare offers, and prepare the next step in the same visible service case.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
-      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>10</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Your ChatGPT chat <i>→</i> Velaire tools <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
+      <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can check fit, build a transparent planning range, route permit and incentive questions to freshness-dated official sources, negotiate exact terms, and audit a later invoice against the promise you approved.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
+      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>13</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Your ChatGPT chat <i>→</i> Velaire tools <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
     </section>
 
     <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>

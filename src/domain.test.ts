@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkServiceFit, compareChangeOrder, compareOfferVersions, initialState, type Command, type RuntimeContext } from "./domain";
+import {
+  auditInvoiceAgainstReceipt,
+  checkServiceFit,
+  compareChangeOrder,
+  compareOfferVersions,
+  estimateServiceRange,
+  getProjectPreflight,
+  initialState,
+  type Command,
+  type RuntimeContext,
+} from "./domain";
 import { PromiseDiffStore } from "./store";
 import { installWebMCP, waitForOwnerReply } from "./webmcp";
 
@@ -105,6 +115,31 @@ describe("Velaire agreement boundary", () => {
     expect(comparison.explicitlyExcluded).toEqual(["Replacement part: capacitor"]);
     send(store, { type: "DECIDE_CHANGE_ORDER", caseId, changeOrderId: change.id, decision: "rejected" });
     expect(store.getSnapshot().cases[0].receipt?.acceptedOffer.totalCents).toBe(17500);
+
+    const invoice = auditInvoiceAgainstReceipt(store.getSnapshot().cases[0], [
+      { description: "Accepted diagnostic", amountCents: 17500, kind: "accepted_offer", authorizationRef: "offer-v2" },
+      { description: "Unapproved dispatch fee", amountCents: 2500, kind: "other" },
+    ])!;
+    expect(invoice.deltaFromAuthorizedCents).toBe(2500);
+    expect(invoice.allLinesTraceToHumanApproval).toBe(false);
+    expect(invoice.unresolvedLineIndexes).toEqual([1]);
+  });
+
+  it("produces transparent planning ranges and freshness-dated project preflights", () => {
+    const estimate = estimateServiceRange({
+      serviceId: "ac-diagnostic", urgency: "same_day", access: "limited", knownFinding: "capacitor",
+    })!;
+    expect(estimate.minCents).toBe(20900);
+    expect(estimate.maxCents).toBe(46400);
+    expect(estimate.basis).toContain("Fictional");
+
+    const preflight = getProjectPreflight({
+      postcode: "60614", projectType: "heat_pump_upgrade", buildingType: "multifamily", installationLocation: "rooftop",
+    });
+    expect(preflight.supportedDemoPostcode).toBe(true);
+    expect(preflight.checklist).toContain("Property-owner or building-management authorization");
+    expect(preflight.officialSources.every((source) => source.checkedAt === "2026-09-03")).toBe(true);
+    expect(preflight.officialSources.find((source) => source.authority === "ENERGY STAR")?.status).toContain("ended_2025");
   });
 
   it("resolves a pending wait only after a human-sent owner event and leaves abort recoverable", async () => {
@@ -136,12 +171,19 @@ describe("Velaire agreement boundary", () => {
     vi.stubGlobal("window", fakeWindow);
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
-    expect(customer.registered).toHaveLength(10);
+    expect(customer.registered).toHaveLength(13);
     expect(customer.registered).toContain("velaire_compare_change_order");
+    expect(customer.registered).toContain("velaire_audit_invoice_against_receipt");
     const customerRead = await registrations.find((tool) => tool.name === "velaire_get_service_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
     expect(customerRead.data).not.toHaveProperty("ownerDraft");
+    const unexpected = await registrations.find((tool) => tool.name === "velaire_check_service_fit")!.execute(
+      { need: "warm air", postcode: "60614", urgency: "same_day", unexpected: true },
+      { signal: new AbortController().signal },
+    ) as { code: string; effect: string };
+    expect(unexpected.code).toBe("INVALID_STATE");
+    expect(unexpected.effect).toContain("Unknown input property");
     customer.dispose();
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
@@ -152,6 +194,27 @@ describe("Velaire agreement boundary", () => {
     ) as { data: Record<string, unknown> };
     expect(ownerRead.data).toHaveProperty("ownerDraft");
     owner.dispose();
+    vi.unstubAllGlobals();
+  });
+
+  it("starts every route registration without serial blocking", async () => {
+    const registrations: WebMCPTool[] = [];
+    const releases: Array<() => void> = [];
+    const fakeWindow = { location: { origin: "https://example.test" } } as unknown as Window;
+    Object.defineProperty(fakeWindow, "top", { value: fakeWindow });
+    vi.stubGlobal("window", fakeWindow);
+    vi.stubGlobal("document", {
+      modelContext: {
+        registerTool: (tool: WebMCPTool) => {
+          registrations.push(tool);
+          return new Promise<void>((resolve) => releases.push(resolve));
+        },
+      },
+    });
+    const pending = installWebMCP(new PromiseDiffStore(initialState()), "customer");
+    expect(registrations).toHaveLength(13);
+    releases.forEach((release) => release());
+    expect((await pending).registered).toHaveLength(13);
     vi.unstubAllGlobals();
   });
 });
