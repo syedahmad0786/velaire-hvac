@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://promisediff-webmcp.vercel.app/</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/demo/customer</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/demo/owner</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/demo/operations</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/evidence/pricing</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/evidence/warranty</loc></url>
-  <url><loc>https://promisediff-webmcp.vercel.app/evidence/reviews</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/demo/customer</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/demo/owner</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/demo/operations</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/evidence/pricing</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/evidence/warranty</loc></url>
+  <url><loc>https://velaire-hvac.vercel.app/evidence/reviews</loc></url>
 </urlset>

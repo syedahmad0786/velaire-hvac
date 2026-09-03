@@ -23,7 +23,7 @@ npx vercel deploy --prod --yes
 
 Expected public URL:
 
-https://promisediff-webmcp.vercel.app/
+https://velaire-hvac.vercel.app/
 
 Verify all of the following after deployment:
 

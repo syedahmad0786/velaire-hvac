@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://promisediff-webmcp.vercel.app/sitemap.xml
+Sitemap: https://velaire-hvac.vercel.app/sitemap.xml

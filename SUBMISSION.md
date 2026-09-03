@@ -4,8 +4,8 @@
 
 - Project title: Velaire Heating & Air
 - Tagline: The observable WebMCP agreement room for home services
-- Live app: https://promisediff-webmcp.vercel.app/
-- Public repository: https://github.com/syedahmad0786/promisediff-webmcp
+- Live app: https://velaire-hvac.vercel.app/
+- Public repository: https://github.com/syedahmad0786/velaire-hvac
 - License: MIT
 - Public YouTube demo: ADD AFTER UPLOAD
 
@@ -71,8 +71,8 @@ The same agreement primitive can support plumbers, electricians, roofers, applia
 
 ## Testing instructions for judges
 
-1. Open https://promisediff-webmcp.vercel.app/demo/operations in ChatGPT's in-app browser. Confirm 13 tools and run the operations prompt below; watch the timeline and telemetry update.
-2. In customer ChatGPT chat A, open https://promisediff-webmcp.vercel.app/demo/customer and confirm 29 customer tools.
+1. Open https://velaire-hvac.vercel.app/demo/operations in ChatGPT's in-app browser. Confirm 13 tools and run the operations prompt below; watch the timeline and telemetry update.
+2. In customer ChatGPT chat A, open https://velaire-hvac.vercel.app/demo/customer and confirm 29 customer tools.
 3. Open a service case, keep its case code, and copy the private owner invite without exposing its token in the recording.
 4. In owner ChatGPT chat B, open that invite and confirm 19 owner tools. Stage an offer, verify it stays private, then press `Human: send offer`.
 5. In chat A, ask whether the owner replied, then ask for the case history, likely drive time, and map route. Counter naturally. In chat B, ask whether the customer replied, human-send the revision, and let chat A compare versions.

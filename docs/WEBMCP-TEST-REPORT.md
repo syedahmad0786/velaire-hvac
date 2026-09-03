@@ -1,7 +1,7 @@
 # Velaire WebMCP production test report
 
 Test date: 2026-09-04
-Canonical URL: https://promisediff-webmcp.vercel.app/
+Canonical URL: https://velaire-hvac.vercel.app/
 Release: durable two-chat service cases
 Client: ChatGPT desktop in-app browser with native page-scoped WebMCP discovery
 

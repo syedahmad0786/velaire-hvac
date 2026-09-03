@@ -6,11 +6,11 @@ When this page is open in a supporting agent browser, it automatically registers
 
 ## Primary routes
 
-- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 29 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
-- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 29 customer tools beside the visible request, route plan, negotiation, booking, receipt, and change-order interface.
-- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 19 tools: 13 shared foundation/operations tools and 6 private owner tools. Sending remains a human action.
-- [Agent operations](https://promisediff-webmcp.vercel.app/demo/operations): Registers 13 foundation/operations tools beside the BLS/FRED chart, 3–10 day timeline/Kanban, and live call-health ledger.
-- [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
+- [HVAC service website](https://velaire-hvac.vercel.app/): Registers 29 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
+- [Customer service room](https://velaire-hvac.vercel.app/demo/customer?judge=1): Registers the same 29 customer tools beside the visible request, route plan, negotiation, booking, receipt, and change-order interface.
+- [Owner desk](https://velaire-hvac.vercel.app/demo/owner): Registers 19 tools: 13 shared foundation/operations tools and 6 private owner tools. Sending remains a human action.
+- [Agent operations](https://velaire-hvac.vercel.app/demo/operations): Registers 13 foundation/operations tools beside the BLS/FRED chart, 3–10 day timeline/Kanban, and live call-health ledger.
+- [Public source](https://github.com/syedahmad0786/velaire-hvac): Implementation, architecture, tests, and demonstration instructions.
 
 ## Shared foundation and operations tools
 
