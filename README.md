@@ -1,6 +1,6 @@
-# PromiseDiff
+# Velaire Heating & Air
 
-PromiseDiff is a WebMCP-native agreement room for local service businesses. A customer agent can discover services, inspect source cards, open a case, negotiate structured terms, prepare a booking, and compare changed work. The business can stage replies and offers. Humans retain every commitment.
+Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room. A customer agent can discover services, inspect source cards, open a case, negotiate structured terms, prepare a booking, and compare changed work. The business can stage replies and offers. Humans retain every commitment.
 
 The synthetic HVAC demo tells one complete story:
 
@@ -10,13 +10,12 @@ The synthetic HVAC demo tells one complete story:
 
 The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate MCP server, extension, screen scraping layer, or AgentLane runtime dependency.
 
-- `/demo/customer` exposes 10 customer tools.
+- `/` and `/demo/customer` expose the same 10 customer tools.
 - `/demo/owner` exposes 5 owner tools.
 - `/evidence/:sourceId` exposes one canonical evidence lookup.
 - `/receipt/:receiptId` exposes one immutable receipt lookup.
-- `/` exposes no tools.
 
-Customer and owner tools are never registered together. Route scoping is a visible demo capability boundary, not a claim of production authentication.
+Customer and owner tools are never registered together. The public storefront exposes customer capabilities so an agent can act without navigating to a hidden integration page. Route scoping is a visible demo capability boundary, not a claim of production authentication.
 
 ## Architecture
 
@@ -58,26 +57,26 @@ stateDiagram-v2
 
 | Tool | Effect |
 |---|---|
-| `promisediff_check_service_fit` | Reads service-area, pricing, prerequisites, and safety fit. |
-| `promisediff_get_business_evidence` | Reads provenance-bearing synthetic source cards. |
-| `promisediff_open_service_case` | Creates a bounded case; never books or charges. |
-| `promisediff_get_service_case` | Reads authoritative case state and valid next actions. |
-| `promisediff_wait_for_owner_reply` | Waits 1–20 seconds for a newer human-sent owner event. |
-| `promisediff_submit_case_message` | Adds a version-checked question or counteroffer. |
-| `promisediff_compare_offer_versions` | Deterministically compares two sent offers. |
-| `promisediff_prepare_booking` | Stages the latest offer for visible human confirmation. |
-| `promisediff_get_booking_receipt` | Reads the immutable accepted-term snapshot. |
-| `promisediff_compare_change_order` | Compares later scope and price against that snapshot. |
+| `velaire_check_service_fit` | Reads service-area, pricing, prerequisites, and safety fit. |
+| `velaire_get_business_evidence` | Reads provenance-bearing synthetic source cards. |
+| `velaire_open_service_case` | Creates a bounded case; never books or charges. |
+| `velaire_get_service_case` | Reads authoritative case state and valid next actions. |
+| `velaire_wait_for_owner_reply` | Waits 1–20 seconds for a newer human-sent owner event. |
+| `velaire_submit_case_message` | Adds a version-checked question or counteroffer. |
+| `velaire_compare_offer_versions` | Deterministically compares two sent offers. |
+| `velaire_prepare_booking` | Stages the latest offer for visible human confirmation. |
+| `velaire_get_booking_receipt` | Reads the immutable accepted-term snapshot. |
+| `velaire_compare_change_order` | Compares later scope and price against that snapshot. |
 
 ### Owner route
 
 | Tool | Effect |
 |---|---|
-| `promisediff_list_service_cases` | Reads the owner queue. |
-| `promisediff_get_owner_case` | Reads one authoritative case. |
-| `promisediff_stage_owner_reply` | Creates a private reply draft. |
-| `promisediff_stage_service_offer` | Creates a private structured offer draft. |
-| `promisediff_stage_change_order` | Creates a private structured change-order draft. |
+| `velaire_list_service_cases` | Reads the owner queue. |
+| `velaire_get_owner_case` | Reads one authoritative case. |
+| `velaire_stage_owner_reply` | Creates a private reply draft. |
+| `velaire_stage_service_offer` | Creates a private structured offer draft. |
+| `velaire_stage_change_order` | Creates a private structured change-order draft. |
 
 There is intentionally no agent tool for sending an owner draft, confirming a booking, accepting changed work, or taking payment.
 

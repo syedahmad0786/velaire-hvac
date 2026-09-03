@@ -1,20 +1,20 @@
-# PromiseDiff submission kit
+# Velaire Heating & Air submission kit
 
 ## Devpost one-liner
 
-PromiseDiff turns the missing middle between service search and payment into a versioned WebMCP agreement room where agents prepare and compare—but humans commit.
+Velaire turns a premium HVAC website into a versioned WebMCP agreement room where agents discover, prepare, and compare—but humans commit.
 
 ## Short description
 
-Local-service bookings often begin in chat and end with a different invoice. PromiseDiff gives the customer and provider one authoritative, versioned ServiceCase. ChatGPT can match an HVAC need, inspect provenance-bearing evidence, open a request, wait for a real owner reply, negotiate a bounded counteroffer, prepare exact booking terms, and compare later changed work. The provider agent can stage replies, offers, and change orders, but only the visible human controls can send or approve them. An immutable receipt preserves the accepted promise before later terms move.
+Local-service bookings often begin in chat and end with a different invoice. Velaire gives the customer and provider one authoritative, versioned ServiceCase inside a customer-facing HVAC website. ChatGPT can match an HVAC need, inspect provenance-bearing evidence, open a request, wait for a real owner reply, negotiate a bounded counteroffer, prepare exact booking terms, and compare later changed work. The provider agent can stage replies, offers, and change orders, but only the visible human controls can send or approve them. An immutable receipt preserves the accepted promise before later terms move.
 
-PromiseDiff is implemented directly in the web application with native imperative WebMCP. Customer and owner tools are route-scoped, every write is revision-checked, emergency HVAC language fails closed, async waits honor browser cancellation, and all synthetic evidence declares its trust status.
+Velaire is implemented directly in the web application with native imperative WebMCP. Customer and owner tools are route-scoped, every write is revision-checked, emergency HVAC language fails closed, async waits honor browser cancellation, and all synthetic evidence declares its trust status.
 
 ## 2:40 demo script
 
 **0:00–0:18 — Problem**
 
-“Search can find a contractor and booking can reserve a slot, but the promise often lives in disappearing chat. PromiseDiff makes every offer, approval, and later change machine-readable and human-visible.”
+“Search can find a contractor and booking can reserve a slot, but the promise often lives in disappearing chat. Velaire makes every offer, approval, and later change machine-readable and human-visible inside a real service website.”
 
 **0:18–0:36 — Native discovery**
 
@@ -36,13 +36,13 @@ Ask ChatGPT to counter at `$175` with no after-hours surcharge. Stage and human-
 
 Ask ChatGPT to prepare V2. Point out that it stops at `AWAITING_HUMAN`. Click **I confirm these terms**. Open the receipt and show that it stores the complete offer snapshot, not merely an ID.
 
-**2:02–2:30 — PromiseDiff moment**
+**2:02–2:30 — Velaire moment**
 
 Stage and human-send the `+$145` capacitor change order. Ask ChatGPT to compare it with the accepted promise. Show: parts were excluded, total rises from `$175` to `$320`, schedule adds 30 minutes, and customer approval is still required.
 
 **2:30–2:40 — Close**
 
-“Two agents can collaborate across one live case, but neither can silently commit the humans. That is PromiseDiff.”
+“Two agents can collaborate across one live case, but neither can silently commit the humans. That is Velaire.”
 
 ## Judge test prompts
 

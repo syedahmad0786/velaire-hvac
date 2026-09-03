@@ -30,7 +30,7 @@ function openCase(store: PromiseDiffStore) {
   return result.caseId!;
 }
 
-describe("PromiseDiff agreement boundary", () => {
+describe("Velaire agreement boundary", () => {
   it("stops ordinary booking for HVAC emergency language", () => {
     const store = new PromiseDiffStore(initialState());
     const result = send(store, {
@@ -137,8 +137,8 @@ describe("PromiseDiff agreement boundary", () => {
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
     expect(customer.registered).toHaveLength(10);
-    expect(customer.registered).toContain("promisediff_compare_change_order");
-    const customerRead = await registrations.find((tool) => tool.name === "promisediff_get_service_case")!.execute(
+    expect(customer.registered).toContain("velaire_compare_change_order");
+    const customerRead = await registrations.find((tool) => tool.name === "velaire_get_service_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
     expect(customerRead.data).not.toHaveProperty("ownerDraft");
@@ -146,8 +146,8 @@ describe("PromiseDiff agreement boundary", () => {
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
     expect(owner.registered).toHaveLength(5);
-    expect(owner.registered).not.toContain("promisediff_prepare_booking");
-    const ownerRead = await registrations.find((tool) => tool.name === "promisediff_get_owner_case")!.execute(
+    expect(owner.registered).not.toContain("velaire_prepare_booking");
+    const ownerRead = await registrations.find((tool) => tool.name === "velaire_get_owner_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
     expect(ownerRead.data).toHaveProperty("ownerDraft");

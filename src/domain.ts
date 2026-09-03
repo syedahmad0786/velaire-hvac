@@ -226,8 +226,8 @@ export const EVIDENCE: SourceCard[] = [
   {
     id: "credentials",
     topic: "credentials",
-    claim: "DemoAir lists a current trade licence and general-liability cover in this synthetic demonstration.",
-    publisher: "DemoAir HVAC",
+    claim: "Velaire lists a current trade licence and general-liability cover in this fictional demonstration.",
+    publisher: "Velaire Heating & Air",
     evidenceType: "provider_record",
     canonicalPath: "/evidence/credentials",
     refreshedAt: "2026-09-03T00:00:00.000Z",
@@ -238,7 +238,7 @@ export const EVIDENCE: SourceCard[] = [
     id: "pricing",
     topic: "pricing",
     claim: "The diagnostic range is $89–$169. Parts and changed work require a separate, visible approval.",
-    publisher: "DemoAir HVAC",
+    publisher: "Velaire Heating & Air",
     evidenceType: "published_policy",
     canonicalPath: "/evidence/pricing",
     refreshedAt: "2026-09-03T00:00:00.000Z",
@@ -249,7 +249,7 @@ export const EVIDENCE: SourceCard[] = [
     id: "availability",
     topic: "availability",
     claim: "Same-day requests are considered in 60610, 60613, 60614, and 60657; a request is not a promised slot.",
-    publisher: "DemoAir HVAC",
+    publisher: "Velaire Heating & Air",
     evidenceType: "published_policy",
     canonicalPath: "/evidence/availability",
     refreshedAt: "2026-09-03T00:00:00.000Z",
@@ -260,7 +260,7 @@ export const EVIDENCE: SourceCard[] = [
     id: "cancellation",
     topic: "cancellation",
     claim: "A simulated booking can be cancelled without charge until one hour before the arrival window.",
-    publisher: "DemoAir HVAC",
+    publisher: "Velaire Heating & Air",
     evidenceType: "published_policy",
     canonicalPath: "/evidence/cancellation",
     refreshedAt: "2026-09-03T00:00:00.000Z",
@@ -271,7 +271,7 @@ export const EVIDENCE: SourceCard[] = [
     id: "warranty",
     topic: "warranty",
     claim: "Workmanship coverage is stated on each offer. Manufacturer parts coverage is separate.",
-    publisher: "DemoAir HVAC",
+    publisher: "Velaire Heating & Air",
     evidenceType: "published_policy",
     canonicalPath: "/evidence/warranty",
     refreshedAt: "2026-09-03T00:00:00.000Z",
@@ -530,7 +530,7 @@ export function runCommand(
       };
     }
     if (!SERVICE_POSTCODES.has(command.postcode.trim())) {
-      return fail(state, "INVALID_STATE", "The postcode is outside DemoAir's published demo service area.");
+      return fail(state, "INVALID_STATE", "The postcode is outside Velaire's published demo service area.");
     }
 
     const id = context.id("SC");

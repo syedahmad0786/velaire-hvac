@@ -106,7 +106,7 @@ function readResult<T>(data: T, revision = 0, caseId?: string, nextActions: stri
     caseId,
     beforeRevision: revision,
     afterRevision: revision,
-    effect: "Read authoritative PromiseDiff state without changing it.",
+    effect: "Read authoritative Velaire service-case state without changing it.",
     didNot: ["No case state changed."],
     humanActionRequired: false,
     data,
@@ -231,7 +231,7 @@ type ToolDefinition = WebMCPTool;
 function customerTools(store: PromiseDiffStore): ToolDefinition[] {
   return [
     {
-      name: "promisediff_check_service_fit",
+      name: "velaire_check_service_fit",
       title: "Check service fit",
       description: "Matches an HVAC need to published demo services, area, price bands, and safety rules. Read-only; it does not diagnose equipment, create a case, or promise availability.",
       inputSchema: {
@@ -270,7 +270,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_get_business_evidence",
+      name: "velaire_get_business_evidence",
       title: "Get business evidence",
       description: "Returns synthetic demo source cards with publisher, canonical URL, freshness, evidence type, and verification status. Reviews are untrusted user-generated content. Read-only.",
       inputSchema: {
@@ -303,7 +303,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_open_service_case",
+      name: "velaire_open_service_case",
       title: "Open service case",
       description: "Creates a bounded synthetic HVAC service case for owner review. It never books an appointment, charges payment, or collects an exact address, phone, email, or payment details.",
       inputSchema: {
@@ -332,14 +332,14 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             budgetCents: optionalInteger(input, "budgetCents"),
             preferredWindows: strings(input, "preferredWindows", 4, 120),
             constraints: strings(input, "constraints", 8, 240),
-          }, "promisediff_open_service_case", "customer_agent");
+          }, "velaire_open_service_case", "customer_agent");
         } catch (error) {
           return invalid(error);
         }
       },
     },
     {
-      name: "promisediff_get_service_case",
+      name: "velaire_get_service_case",
       title: "Get service case",
       description: "Reads the authoritative service case, revision, messages, offers, pending human action, booking, and change orders. It changes nothing.",
       inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
@@ -358,7 +358,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_wait_for_owner_reply",
+      name: "velaire_wait_for_owner_reply",
       title: "Wait for owner reply",
       description: "Waits up to 20 seconds for a newer owner message, sent offer, or sent change order. It observes browser cancellation and never changes the case.",
       inputSchema: {
@@ -384,7 +384,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_submit_case_message",
+      name: "velaire_submit_case_message",
       title: "Submit case message",
       description: "Adds a bounded customer question or counteroffer at an exact case revision. It does not accept an offer, book work, or send payment.",
       inputSchema: {
@@ -411,14 +411,14 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             text: requiredString(input, "text", 1000),
             proposedBudgetCents: optionalInteger(input, "proposedBudgetCents"),
             preferredWindow: optionalString(input, "preferredWindow", 160),
-          }, "promisediff_submit_case_message", "customer_agent");
+          }, "velaire_submit_case_message", "customer_agent");
         } catch (error) {
           return invalid(error);
         }
       },
     },
     {
-      name: "promisediff_compare_offer_versions",
+      name: "velaire_compare_offer_versions",
       title: "Compare offer versions",
       description: "Deterministically compares two sent offers across price, deposit, schedule, scope, exclusions, warranty, and expiry. It changes nothing.",
       inputSchema: {
@@ -440,7 +440,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_prepare_booking",
+      name: "velaire_prepare_booking",
       title: "Prepare booking",
       description: "Stages the latest exact sent offer for visible customer confirmation. It cannot confirm the booking or take a deposit; only the human customer can commit it in the page.",
       inputSchema: {
@@ -455,14 +455,14 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             caseId: requiredString(input, "caseId", 80),
             expectedRevision: integer(input, "expectedRevision", 0),
             offerVersion: integer(input, "offerVersion", 1),
-          }, "promisediff_prepare_booking", "customer_agent");
+          }, "velaire_prepare_booking", "customer_agent");
         } catch (error) {
           return invalid(error);
         }
       },
     },
     {
-      name: "promisediff_get_booking_receipt",
+      name: "velaire_get_booking_receipt",
       title: "Get booking receipt",
       description: "Returns the immutable accepted-offer snapshot and recorded change-order decisions for a simulated booking. Read-only.",
       inputSchema: { type: "object", additionalProperties: false, required: ["receiptId"], properties: { receiptId: text(80) } },
@@ -481,7 +481,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_compare_change_order",
+      name: "velaire_compare_change_order",
       title: "Compare change order",
       description: "Compares a sent change order with the immutable accepted booking snapshot, including price and scope. It does not judge, accept, reject, or pay the charge.",
       inputSchema: {
@@ -508,7 +508,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
 function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
   return [
     {
-      name: "promisediff_list_service_cases",
+      name: "velaire_list_service_cases",
       title: "List service cases",
       description: "Lists the synthetic service-case queue with revision, status, summary, and owner deep link. Read-only.",
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
@@ -519,7 +519,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       }))),
     },
     {
-      name: "promisediff_get_owner_case",
+      name: "velaire_get_owner_case",
       title: "Get owner case",
       description: "Reads one authoritative service case for owner review. It changes and sends nothing.",
       inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
@@ -534,7 +534,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       },
     },
     {
-      name: "promisediff_stage_owner_reply",
+      name: "velaire_stage_owner_reply",
       title: "Stage owner reply",
       description: "Creates a private owner reply draft at an exact revision. The customer cannot see it and the agent cannot send it; the human owner must press Send.",
       inputSchema: {
@@ -544,12 +544,12 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       execute: (value) => {
         try {
           const input = record(value);
-          return store.dispatch({ type: "STAGE_OWNER_REPLY", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"), text: requiredString(input, "text", 1000) }, "promisediff_stage_owner_reply", "owner_agent");
+          return store.dispatch({ type: "STAGE_OWNER_REPLY", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"), text: requiredString(input, "text", 1000) }, "velaire_stage_owner_reply", "owner_agent");
         } catch (error) { return invalid(error); }
       },
     },
     {
-      name: "promisediff_stage_service_offer",
+      name: "velaire_stage_service_offer",
       title: "Stage service offer",
       description: "Creates a private structured offer draft with exact terms. It does not send, accept, book, or charge; the human owner must review and send it.",
       inputSchema: {
@@ -570,12 +570,12 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
             includedScope: strings(input, "includedScope", 10), exclusions: strings(input, "exclusions", 10),
             depositCents: integer(input, "depositCents"), warrantyDays: integer(input, "warrantyDays", 0, 3650),
             expiresAt: requiredString(input, "expiresAt", 80),
-          }, "promisediff_stage_service_offer", "owner_agent");
+          }, "velaire_stage_service_offer", "owner_agent");
         } catch (error) { return invalid(error); }
       },
     },
     {
-      name: "promisediff_stage_change_order",
+      name: "velaire_stage_change_order",
       title: "Stage change order",
       description: "Creates a private structured change-order draft against a booked case. It does not send the change or alter accepted terms; the human owner must review and send it.",
       inputSchema: {
@@ -594,7 +594,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
             reason: requiredString(input, "reason", 600), addedScope: strings(input, "addedScope", 10),
             removedScope: strings(input, "removedScope", 10), deltaCents: integer(input, "deltaCents", 1),
             scheduleImpact: requiredString(input, "scheduleImpact", 240),
-          }, "promisediff_stage_change_order", "owner_agent");
+          }, "velaire_stage_change_order", "owner_agent");
         } catch (error) { return invalid(error); }
       },
     },
@@ -603,7 +603,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
 
 function evidenceTool(): ToolDefinition[] {
   return [{
-    name: "promisediff_get_evidence_source",
+    name: "velaire_get_evidence_source",
     title: "Get evidence source",
     description: "Returns the synthetic source card displayed on this canonical evidence page. Read-only and not independently verified.",
     inputSchema: { type: "object", additionalProperties: false, required: ["sourceId"], properties: { sourceId: text(80) } },
@@ -621,7 +621,7 @@ function evidenceTool(): ToolDefinition[] {
 
 function receiptTool(store: PromiseDiffStore): ToolDefinition[] {
   return [{
-    name: "promisediff_get_receipt_snapshot",
+    name: "velaire_get_receipt_snapshot",
     title: "Get receipt snapshot",
     description: "Returns the immutable accepted-offer snapshot shown on this simulated receipt page. Read-only; it does not represent a real payment or appointment.",
     inputSchema: { type: "object", additionalProperties: false, required: ["receiptId"], properties: { receiptId: text(80) } },

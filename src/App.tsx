@@ -16,6 +16,7 @@ function usePromiseDiffState() {
 }
 
 function routeKind(pathname: string): ToolRoute {
+  if (pathname === "/") return "customer";
   if (pathname === "/demo/customer") return "customer";
   if (pathname === "/demo/owner") return "owner";
   if (pathname.startsWith("/evidence/")) return "evidence";
@@ -45,7 +46,10 @@ const shortTime = (value: string) => new Intl.DateTimeFormat("en-US", { hour: "n
 const titleCase = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 function Logo() {
-  return <a className="logo" href="/" aria-label="PromiseDiff home"><span className="logo-mark" aria-hidden="true">P≠</span><span>PromiseDiff</span></a>;
+  return <a className="logo" href="/" aria-label="Velaire Heating and Air home">
+    <span className="logo-mark" aria-hidden="true"><img src="/assets/velaire-mark.webp" alt="" /></span>
+    <span className="logo-type"><strong>Velaire</strong><small>Heating &amp; Air</small></span>
+  </a>;
 }
 
 function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus | null }) {
@@ -53,9 +57,9 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
     <header className="topbar">
       <Logo />
       <nav aria-label="Primary navigation">
-        <a href="/demo/customer?judge=1">Customer room</a>
-        <a href="/demo/owner">Owner desk</a>
-        <a href="https://github.com/syedahmad0786/promisediff-webmcp" target="_blank" rel="noreferrer">Source</a>
+        <a href="/#services">Services</a>
+        <a href="/demo/customer?judge=1">AI service desk</a>
+        <a href="/demo/owner">Owner portal</a>
       </nav>
       <div className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} title={status?.errors.join("\n") || undefined}>
         <span aria-hidden="true" />
@@ -63,71 +67,90 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
       </div>
     </header>
     {children}
-    <footer><Logo /><p>One shared record. No invisible commitments.</p><span>Synthetic hackathon demonstration · 2026</span></footer>
+    <footer><Logo /><p>Precision comfort. Clearly agreed.</p><span>Chicago service-area demo · WebMCP native</span></footer>
   </>;
 }
 
 function SyntheticFlag() {
-  return <span className="synthetic-flag">Synthetic demo</span>;
+  return <span className="synthetic-flag">Fictional demo</span>;
 }
 
 function Landing() {
-  return <main>
-    <section className="hero">
-      <div className="hero-copy">
-        <p className="eyebrow">A WebMCP-native agreement room</p>
-        <h1>Make the promise visible before the work begins.</h1>
-        <p className="lede">PromiseDiff lets a customer agent and a local service business discover, negotiate, book, and compare changed work—without letting either agent make the human decision.</p>
-        <div className="button-row">
-          <a className="button primary" href="/demo/customer?judge=1">Run the guided case <span aria-hidden="true">→</span></a>
-          <a className="button quiet" href="/demo/owner">Open owner desk</a>
+  const state = usePromiseDiffState();
+  const activeCase = state.cases[0];
+  return <main className="service-site">
+    <section className="service-hero">
+      <img className="hero-photo" src="/assets/velaire-hero.webp" alt="HVAC technician measuring airflow in a Chicago home" />
+      <div className="hero-shade" aria-hidden="true" />
+      <div className="hero-inner">
+        <div className="hero-copy">
+          <p className="eyebrow light">Chicago home comfort · agent ready</p>
+          <h1>Comfort without<br />the fine print.</h1>
+          <p className="lede">Expert heating and cooling service with published ranges, written terms, and your approval before anything changes.</p>
+          <div className="button-row">
+            <a className="button primary" href="/demo/customer?judge=1">Start a service request <span aria-hidden="true">→</span></a>
+            <a className="button glass" href="#services">Explore services</a>
+          </div>
+          <div className="hero-trust" aria-label="Service assurances">
+            <span><b>01</b> Published price bands</span>
+            <span><b>02</b> Human-approved work</span>
+            <span><b>03</b> Written change orders</span>
+          </div>
         </div>
-        <p className="microcopy"><SyntheticFlag /> No login, payment, calendar, or external credentials required.</p>
+        <aside className="agent-concierge" aria-label="AI service concierge">
+          <div className="concierge-head"><span className="live-orb" aria-hidden="true" /><div><b>AI service concierge</b><small>10 WebMCP tools available</small></div><em>LIVE</em></div>
+          {activeCase ? <div className="active-case-card">
+            <span>ACTIVE SERVICE CASE</span>
+            <strong>{activeCase.problemSummary}</strong>
+            <p>{activeCase.id} · revision {activeCase.revision}</p>
+            <a href={`/demo/customer?case=${activeCase.id}&judge=1`}>Continue agreement <span aria-hidden="true">→</span></a>
+          </div> : <>
+            <p>Ask your agent to check service fit, inspect our evidence, open a request, negotiate terms, or compare changed work.</p>
+            <div className="agent-example"><span>TRY ASKING</span><q>My AC is blowing warm air in 60614. Can you check same-day fit under $180?</q></div>
+          </>}
+          <small className="concierge-boundary">Agents prepare · you approve</small>
+        </aside>
       </div>
-      <div className="promise-sheet" aria-label="Example accepted terms and proposed change">
-        <div className="sheet-header"><span>CASE / SC-DEMO</span><span>REVISION 07</span></div>
-        <p className="sheet-kicker">Accepted promise</p>
-        <div className="sheet-price"><strong>$175</strong><span>2–4 PM · $49 deposit</span></div>
-        <ul className="term-list">
-          <li><span>Diagnostic + labour</span><b className="kept">kept</b></li>
-          <li><span>No surprise travel fee</span><b className="kept">kept</b></li>
-          <li><span>Parts</span><b className="excluded">excluded</b></li>
-        </ul>
-        <div className="change-slip">
-          <span>CHANGE ORDER CO-01</span>
-          <strong>+$145</strong>
-          <p>Capacitor replacement · approval required</p>
-        </div>
-      </div>
-    </section>
-
-    <section className="proof-band" aria-label="Product principles">
-      <article><strong>10</strong><span>customer tools</span></article>
-      <article><strong>5</strong><span>owner tools</span></article>
-      <article><strong>0</strong><span>agent approval tools</span></article>
-      <article><strong>1</strong><span>authoritative case</span></article>
-    </section>
-
-    <section className="section split-intro">
-      <div><p className="eyebrow">Why this exists</p><h2>Service agreements break in the gap between a chat and an invoice.</h2></div>
-      <p>Search tools can find a provider. Booking tools can reserve a slot. PromiseDiff handles the unresolved middle: what was asked, what was offered, what changed, and which exact version a human approved.</p>
-    </section>
-
-    <section className="process-grid section" aria-label="PromiseDiff journey">
-      {[
-        ["01", "Discover", "Match the need to service area, price bands, policies, and evidence."],
-        ["02", "Negotiate", "Pass questions and structured counteroffers through one versioned case."],
-        ["03", "Confirm", "Let the agent prepare exact terms; keep the final booking click human."],
-        ["04", "Diff", "Compare later scope and price against the immutable accepted snapshot."],
-      ].map(([number, label, copy]) => <article key={number}><span>{number}</span><h3>{label}</h3><p>{copy}</p></article>)}
-    </section>
-
-    <section className="section boundary-callout">
-      <div><p className="eyebrow">The product is the boundary</p><h2>Agents can prepare. Humans commit.</h2></div>
-      <div className="boundary-flow" aria-label="Authority flow">
-        <span>Agent reads</span><i>→</i><span>Agent stages</span><i>→</i><strong>Human approves</strong><i>→</i><span>Receipt locks</span>
+      <div className="hero-service-strip">
+        <span><b>Service area</b> 60610 · 60613 · 60614 · 60657</span>
+        <span><b>Cooling diagnostic</b> from $89</span>
+        <span><b>Same-day</b> requests considered</span>
       </div>
     </section>
+
+    <section className="service-section services-showcase" id="services">
+      <div className="section-heading"><div><p className="eyebrow">Considered care, clearly priced</p><h2>Home comfort,<br />handled properly.</h2></div><p>Every visit begins with a defined scope. Every additional charge arrives as a separate decision—not a surprise on the invoice.</p></div>
+      <div className="premium-service-grid">{SERVICES.map((service, index) => <article key={service.id}>
+        <span className="service-number">0{index + 1}</span>
+        <div className="service-line" aria-hidden="true" />
+        <h3>{service.name}</h3>
+        <p>{service.summary}</p>
+        <div><strong>{money(service.minCents)}–{money(service.maxCents)}</strong><span>{service.sameDayEligible ? "Same-day eligible" : "Scheduled care"}</span></div>
+      </article>)}</div>
+    </section>
+
+    <section className="clarity-section">
+      <figure><img src="/assets/velaire-agreement.webp" alt="Technician reviewing written service terms with a homeowner" /><figcaption><span>THE VELAIRE STANDARD</span><b>Nothing changes without a conversation.</b></figcaption></figure>
+      <div className="clarity-copy"><p className="eyebrow light">Clarity is part of the service</p><h2>You should know exactly what you are approving.</h2><p>Our service room keeps the request, offer, scope, exclusions, timing, and every later change in one versioned record.</p>
+        <ol>{[
+          ["Before the visit", "Check service area, realistic price bands, policies, and availability rules."],
+          ["Before booking", "Compare offer versions and confirm the exact scope yourself."],
+          ["Before added work", "See the price and scope difference against the promise you accepted."],
+        ].map(([title, copy], index) => <li key={title}><span>0{index + 1}</span><div><b>{title}</b><p>{copy}</p></div></li>)}</ol>
+      </div>
+    </section>
+
+    <section className="service-section evidence-feature">
+      <div className="section-heading compact"><div><p className="eyebrow">Proof before persuasion</p><h2>Policies your agent can actually inspect.</h2></div><p>Each claim carries a canonical source, publisher, freshness date, and honest trust label.</p></div>
+      <EvidenceCards />
+    </section>
+
+    <section className="agent-native-section">
+      <div><p className="eyebrow light">Built for people and their agents</p><h2>The same service desk, whether you click or ask.</h2><p>Velaire exposes structured tools for fit, evidence, requests, replies, offer comparison, booking preparation, immutable receipts, and change-order review. Every tool uses the same visible case as the human interface.</p><a className="button copper" href="/demo/customer?judge=1">Open the AI service desk <span aria-hidden="true">→</span></a></div>
+      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>10</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Agent reads <i>→</i> agent stages <i>→</i> <b>human approves</b> <i>→</i> receipt locks</p></div>
+    </section>
+
+    <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Start with clear terms.</h2><a className="button primary" href="/demo/customer?judge=1">Check service fit <span aria-hidden="true">→</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
   </main>;
 }
 
@@ -179,7 +202,7 @@ function RequestForm() {
 function Storefront() {
   return <>
     <div className="storefront-heading">
-      <div><p className="eyebrow">DemoAir HVAC · Chicago</p><h1>Clear terms. Comfortable homes.</h1><p>Published ranges, versioned offers, and approval before additional work.</p></div>
+      <div><p className="eyebrow">Velaire Heating &amp; Air · Chicago</p><h1>Clear terms. Comfortable homes.</h1><p>Published ranges, versioned offers, and approval before additional work.</p></div>
       <div className="availability-stamp"><span>AREA</span><strong>60614</strong><small>Same-day requests considered</small></div>
     </div>
     <div className="customer-start-grid">
@@ -268,7 +291,7 @@ function ChangeOrderPanel({ serviceCase }: { serviceCase: ServiceCase }) {
   return <section className="change-order"><header><div><span>UNEXPECTED CHANGE · {change.id}</span><h2>{change.reason}</h2></div><StatusPill status={change.status} /></header>
     <div className="change-math"><div><span>Accepted</span><b>{money(diff.originalTotalCents)}</b></div><i>+</i><div><span>Changed work</span><b>{money(diff.deltaCents)}</b></div><i>=</i><div className="new-total"><span>Proposed total</span><b>{money(diff.proposedTotalCents)}</b></div></div>
     <div className="change-details"><div><span>Added scope</span>{diff.addedScope.map((item) => <b key={item}>{item}</b>)}</div><div><span>Contract signal</span><b>{diff.explicitlyExcluded.length ? "Original offer excluded parts" : "Needs human scope review"}</b></div><div><span>Schedule impact</span><b>{diff.scheduleImpact}</b></div></div>
-    {change.status === "pending" && <div className="human-choice"><p><strong>Only you can decide.</strong> PromiseDiff compared the documents; it did not judge whether the charge is justified.</p><div className="button-row"><button className="button quiet" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "rejected" }, "human_reject_change_order", "customer_human")}>Reject change</button><button className="button primary" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "accepted" }, "human_accept_change_order", "customer_human")}>Accept +{money(change.deltaCents)}</button></div></div>}
+    {change.status === "pending" && <div className="human-choice"><p><strong>Only you can decide.</strong> Velaire compared the documents; it did not judge whether the charge is justified.</p><div className="button-row"><button className="button quiet" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "rejected" }, "human_reject_change_order", "customer_human")}>Reject change</button><button className="button primary" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "accepted" }, "human_accept_change_order", "customer_human")}>Accept +{money(change.deltaCents)}</button></div></div>}
   </section>;
 }
 
@@ -320,7 +343,7 @@ function CustomerCase({ serviceCase, judge }: { serviceCase: ServiceCase; judge:
   const state = usePromiseDiffState();
   const latest = serviceCase.offers.at(-1);
   return <>
-    <div className="case-title"><div><p className="eyebrow">DemoAir HVAC / service case</p><h1>{serviceCase.problemSummary}</h1><p><code>{serviceCase.id}</code> · Postcode {serviceCase.postcode} · {titleCase(serviceCase.urgency)}</p></div><StatusPill status={serviceCase.status} /></div>
+    <div className="case-title"><div><p className="eyebrow">Velaire Heating &amp; Air / service case</p><h1>{serviceCase.problemSummary}</h1><p><code>{serviceCase.id}</code> · Postcode {serviceCase.postcode} · {titleCase(serviceCase.urgency)}</p></div><StatusPill status={serviceCase.status} /></div>
     <TermsBar serviceCase={serviceCase} />
     <div className={`case-layout ${judge ? "with-judge" : ""}`}>
       <div className="case-main">
@@ -342,7 +365,7 @@ function CustomerPage() {
   const selected = params.get("case");
   const serviceCase = state.cases.find((item) => item.id === selected) ?? (selected ? undefined : state.cases[0]);
   return <main className="app-page customer-page">
-    <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm("Reset every synthetic PromiseDiff case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer?judge=1"); } }}>Reset demo</button></div>
+    <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm("Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer?judge=1"); } }}>Reset demo</button></div>
     {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={params.get("judge") === "1"} /> : <Storefront />}
   </main>;
 }
@@ -354,7 +377,7 @@ function OwnerPage() {
   const selected = state.cases.find((item) => item.id === requested) ?? state.cases[0];
   return <main className="app-page owner-page">
     <div className="demo-ribbon owner"><SyntheticFlag /><span>Provider route · demo capability boundary, not production authentication.</span></div>
-    <div className="owner-title"><div><p className="eyebrow">DemoAir operations desk</p><h1>Service case queue</h1><p>Agents may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>open demo cases</span></div></div>
+    <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Service case queue</h1><p>Agents may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>open demo cases</span></div></div>
     {selected ? <div className="owner-layout">
       <aside className="case-queue"><h2>Cases</h2>{state.cases.map((item) => <a className={item.id === selected.id ? "selected" : ""} href={`/demo/owner?case=${item.id}`} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
       <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={`/demo/customer?case=${selected.id}&judge=1`}>Open customer view ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
@@ -365,7 +388,7 @@ function OwnerPage() {
 function EvidencePage({ sourceId }: { sourceId: string }) {
   const source = EVIDENCE.find((item) => item.id === sourceId);
   if (!source) return <NotFound />;
-  return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><article className="source-document"><header><div><p className="eyebrow">Canonical source card</p><h1>{titleCase(source.topic)}</h1></div><SyntheticFlag /></header><blockquote>{source.claim}</blockquote><dl><div><dt>Publisher</dt><dd>{source.publisher}</dd></div><div><dt>Evidence type</dt><dd>{source.evidenceType.replaceAll("_", " ")}</dd></div><div><dt>Refreshed</dt><dd>{new Date(source.refreshedAt).toLocaleDateString()}</dd></div><div><dt>Verification</dt><dd>Not independently verified</dd></div></dl><div className="document-warning"><strong>Trust boundary</strong><p>This source exists solely for the PromiseDiff synthetic demonstration. Agents receive its provenance and untrusted-content status with the claim.</p></div></article></main>;
+  return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><article className="source-document"><header><div><p className="eyebrow">Canonical source card</p><h1>{titleCase(source.topic)}</h1></div><SyntheticFlag /></header><blockquote>{source.claim}</blockquote><dl><div><dt>Publisher</dt><dd>{source.publisher}</dd></div><div><dt>Evidence type</dt><dd>{source.evidenceType.replaceAll("_", " ")}</dd></div><div><dt>Refreshed</dt><dd>{new Date(source.refreshedAt).toLocaleDateString()}</dd></div><div><dt>Verification</dt><dd>Not independently verified</dd></div></dl><div className="document-warning"><strong>Trust boundary</strong><p>This source exists solely for the fictional Velaire demonstration. Agents receive its provenance and untrusted-content status with the claim.</p></div></article></main>;
 }
 
 function ReceiptPage({ receiptId }: { receiptId: string }) {
