@@ -5,6 +5,7 @@ import {
   compareChangeOrder,
   compareOfferVersions,
   type AuditEvent,
+  type EvidenceTopic,
   type ServiceCase,
   type ServiceOffer,
 } from "./domain";
@@ -62,6 +63,7 @@ function useSharedCaseSync() {
 const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
 const shortTime = (value: string) => new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
 const titleCase = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const capabilityLabel = (value: string) => titleCase(value.replace(/^velaire_/, ""));
 
 function Logo() {
   return <a className="logo" href="/" aria-label="Velaire Heating and Air home">
@@ -72,9 +74,9 @@ function Logo() {
 
 function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus | null }) {
   const agentStatus = status === null
-    ? "Checking agent access"
+    ? "Checking assistant access"
     : status.supported
-      ? `AI agent ready · ${status.registered.length} tools`
+      ? "AI assistance ready"
       : "Use with ChatGPT";
   return <>
     <header className="topbar">
@@ -83,7 +85,7 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
         <a href="/#services">Services</a>
         <a href="/#agent-access">Use with ChatGPT</a>
         <a href="/demo/customer?judge=1">Service room</a>
-        <a href="/demo/operations">Agent ops</a>
+        <a href="/demo/operations">Service insights</a>
         <a href="/demo/owner">Owner portal</a>
       </nav>
       <a className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} href="/#agent-access" title={status?.errors.join("\n") || undefined}>
@@ -92,7 +94,7 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
       </a>
     </header>
     {children}
-    <footer><Logo /><p>Precision comfort. Clearly agreed.</p><span>Chicago service-area demo · WebMCP native</span></footer>
+    <footer><Logo /><p>Precision comfort. Clearly agreed.</p><span>Fictional Chicago service experience</span></footer>
   </>;
 }
 
@@ -100,14 +102,27 @@ function SyntheticFlag() {
   return <span className="synthetic-flag">Fictional demo</span>;
 }
 
-const STARTER_PROMPT = "Use Velaire's WebMCP tools to check whether same-day AC service is available for an AC blowing warm air in 60614, with a budget ceiling of $180. Show the published evidence and a transparent planning range before opening a service case. Do not approve a booking or changed work for me.";
+function EvidenceIcon({ topic }: { topic: EvidenceTopic }) {
+  let body: ReactNode;
+  switch (topic) {
+    case "credentials": body = <><path d="M12 3 5 6v5c0 4.6 2.7 8.1 7 10 4.3-1.9 7-5.4 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-5" /></>; break;
+    case "pricing": body = <><path d="M20 13 13 20 4 11V4h7l9 9Z" /><circle cx="8.5" cy="8.5" r="1" /><path d="M14.5 10.5c-2-1.2-4 .1-4 1.5 0 2 4 1 4 3 0 1.4-2 2.7-4 1.5M12.5 9v9" /></>; break;
+    case "availability": body = <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /><path d="M7 3.8 5.5 2.5M17 3.8l1.5-1.3" /></>; break;
+    case "cancellation": body = <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16M9 14l6 4M15 14l-6 4" /></>; break;
+    case "warranty": body = <><path d="m12 3 2 2.1 2.9-.2.8 2.8 2.5 1.5-1.1 2.7 1.1 2.7-2.5 1.5-.8 2.8-2.9-.2L12 21l-2-2.1-2.9.2-.8-2.8-2.5-1.5 1.1-2.7-1.1-2.7 2.5-1.5.8-2.8 2.9.2L12 3Z" /><path d="m9 12 2 2 4-5" /></>; break;
+    case "reviews": body = <><path d="M5 5h14v11H9l-4 4V5Z" /><path d="m12 8 .9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3L12 8Z" /></>; break;
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{body}</svg>;
+}
+
+const STARTER_PROMPT = "My AC is blowing warm air in 60614 and I can spend up to $180. Check whether Velaire can help today, show me the evidence and a transparent price range, then open a service case using Lincoln Park, Chicago, IL 60614 as my confirmed synthetic location. Show me how long the drive may take and give me the map routes. Do not approve a booking or changed work for me.";
 
 function AgentGuide({ status, serviceCase, compact = false, role = "customer" }: { status: WebMCPStatus | null; serviceCase?: ServiceCase; compact?: boolean; role?: "customer" | "owner" }) {
   const [copyLabel, setCopyLabel] = useState("Copy message");
   const prompt = serviceCase
     ? role === "owner"
-      ? `Act as Velaire's owner assistant for shared service case ${serviceCase.id}. Use the owner WebMCP tools to read revision ${serviceCase.revision}, stage the next appropriate reply or structured offer, and ask me to review and press the visible Send button. After I send it, call velaire_wait_for_customer_reply in 15-second rounds using the returned cursor, for no more than 120 seconds total. Never send or approve on my behalf.`
-      : `Act as my customer assistant for shared service case ${serviceCase.id}. Read the latest revision, summarize any new reply, offer, or change order, and use velaire_get_case_visuals to show the case graph and map links. If you send a question or counteroffer, call velaire_wait_for_owner_reply in 15-second rounds using the returned cursor, for no more than 120 seconds total. Stop before every human confirmation, payment, booking, or changed-work decision.`
+      ? `Act as Velaire's owner assistant for shared service case ${serviceCase.id}. Read the current case, prepare the next appropriate reply or structured offer, and ask me to review and press the visible Send button. After I send it, keep checking for a customer reply in short rounds for no more than two minutes. Never send or approve on my behalf.`
+      : `Act as my customer assistant for shared service case ${serviceCase.id}. Read the latest case, summarize anything new, and show the visual case history. If my location is confirmed, show the driving route and a clearly labeled arrival planning range. If you send a question or counteroffer, keep checking for the owner's reply in short rounds for no more than two minutes. Stop before every confirmation, payment, booking, or changed-work decision.`
     : STARTER_PROMPT;
   const connected = status?.supported === true;
   const headline = status === null
@@ -127,13 +142,13 @@ function AgentGuide({ status, serviceCase, compact = false, role = "customer" }:
   return <aside id={compact ? undefined : "agent-access"} className={`agent-guide ${compact ? "compact" : ""}`} aria-label="Use Velaire with your AI agent">
     <div className="agent-guide-status">
       <span className={connected ? "live-orb" : "standby-orb"} aria-hidden="true" />
-      <div><span>AI AGENT ACCESS</span><strong>{connected ? "Connected to this page" : "WebMCP-ready website"}</strong></div>
-      <em>{connected ? `${status.registered.length} TOOLS READY` : "NO MANUAL SETUP"}</em>
+      <div><span>USE YOUR AI ASSISTANT</span><strong>{connected ? "Connected to this page" : "Works with ChatGPT"}</strong></div>
+      <em>{connected ? "READY" : "NO MANUAL SETUP"}</em>
     </div>
     <div className="agent-guide-body">
       <div className="agent-guide-instructions">
         <h2>{headline}</h2>
-        <p>WebMCP is the bridge—not another chatbot. It lets the AI agent in your current chat use Velaire’s structured service tools.</p>
+        <p>Describe what you need in your current ChatGPT conversation. Your assistant can check Velaire’s services and prepare the next step while you keep control of every decision.</p>
         <ol aria-label="How to use the AI agent">
           <li><span>1</span><b>Open this page in ChatGPT</b></li>
           <li><span>2</span><b>Ask in the same chat</b></li>
@@ -163,7 +178,7 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
       <div className="hero-shade" aria-hidden="true" />
       <div className="hero-inner">
         <div className="hero-copy">
-          <p className="eyebrow light">Chicago home comfort · agent ready</p>
+          <p className="eyebrow light">Chicago home comfort · same-day requests</p>
           <h1>Comfort without<br />the fine print.</h1>
           <p className="lede">Expert heating and cooling service with published ranges, written terms, and your approval before anything changes.</p>
           <div className="button-row">
@@ -218,20 +233,20 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
     </section>
 
     <section className="agent-native-section">
-      <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can check fit, build a transparent planning range, route permit and incentive questions to freshness-dated official sources, negotiate exact terms, and audit a later invoice against the promise you approved.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
-      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>28</strong><span>Customer tools</span></div><div><strong>19</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Foundation + HVAC intelligence <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
+      <div><p className="eyebrow light">Service that keeps its context</p><h2>Your assistant can help without taking over.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your assistant can check fit, explain a price range, find dated permit and incentive sources, carry a counteroffer, and compare a later invoice with the terms you actually approved.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
+      <div className="tool-proof" aria-label="Service assurance model"><div><strong>01</strong><span>Evidence linked</span></div><div><strong>02</strong><span>Terms versioned</span></div><div><strong>03</strong><span>Approval stays yours</span></div><p>Published facts <i>→</i> one shared service case <i>→</i> <b>your decision</b></p></div>
     </section>
 
-    <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
+    <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A clearer service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
   </main>;
 }
 
 function EvidenceCards({ compact = false }: { compact?: boolean }) {
   return <div className={compact ? "evidence-list compact" : "evidence-list"}>
-    {EVIDENCE.map((card) => <a href={card.canonicalPath} className="evidence-card" key={card.id}>
-      <span className="evidence-icon" aria-hidden="true">{card.topic.slice(0, 2).toUpperCase()}</span>
-      <span><b>{titleCase(card.topic)}</b><small>{card.evidenceType.replaceAll("_", " ")} · not independently verified</small></span>
-      <span aria-hidden="true">↗</span>
+    {EVIDENCE.map((card) => <a href={card.canonicalPath} className="evidence-card" data-topic={card.topic} key={card.id} aria-label={`Open ${card.topic} source card`}>
+      <span className="evidence-icon"><EvidenceIcon topic={card.topic} /></span>
+      <span className="evidence-copy"><b>{titleCase(card.topic)}</b>{!compact && <p>{card.claim}</p>}<small><i>{card.evidenceType.replaceAll("_", " ")}</i><i>Refreshed {new Date(card.refreshedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</i><i>Synthetic source</i></small></span>
+      <span className="evidence-arrow" aria-hidden="true">↗</span>
     </a>)}
   </div>;
 }
@@ -290,18 +305,18 @@ function ObservabilityPanel() {
   const { metrics } = useOperationsState();
   const summary = summarizeMetrics(metrics);
   return <section id="observability" className="observability-panel">
-    <header><div><p className="eyebrow">WebMCP observability</p><h2>Every tool call leaves a pulse.</h2><p>Browser-local telemetry records tool name, route, result code, and handler time. Inputs and outputs are never logged.</p></div><button className="button quiet" type="button" onClick={() => operationsStore.clearMetrics()}>Clear local metrics</button></header>
+    <header><div><p className="eyebrow">Assistant activity</p><h2>Every request leaves a pulse.</h2><p>Privacy-safe telemetry records the capability used, page, result, and response time. Your request details and results are never logged here.</p></div><button className="button quiet" type="button" onClick={() => operationsStore.clearMetrics()}>Clear local metrics</button></header>
     <div className="metric-grid"><article><span>Calls</span><strong>{summary.totalCalls}</strong><small>last 200</small></article><article><span>Success</span><strong>{summary.successRate}%</strong><small>{summary.successfulCalls}/{summary.totalCalls || 0} returned ok</small></article><article><span>Average</span><strong>{summary.averageLatencyMs}<i>ms</i></strong><small>handler only</small></article><article><span>P95</span><strong>{summary.p95LatencyMs}<i>ms</i></strong><small>browser-local</small></article><article><span>Read / action</span><strong>{summary.readCalls}<i>/</i>{summary.actionCalls}</strong><small>declared intent</small></article></div>
-    <div className="call-ledger"><div className="call-ledger-head"><b>Recent call</b><b>Route</b><b>Result</b><b>Latency</b><b>Time</b></div>{summary.latestCalls.length ? summary.latestCalls.map((call) => <div className="call-row" key={call.id}><code>{call.toolName}</code><span>{call.route}</span><b className={call.ok ? "call-ok" : "call-error"}>{call.code}</b><span>{call.durationMs.toFixed(2)} ms</span><time dateTime={call.startedAt}>{new Date(call.startedAt).toLocaleTimeString()}</time></div>) : <p>Call a Velaire WebMCP tool in this ChatGPT chat; its result will appear here live.</p>}</div>
+    <div className="call-ledger"><div className="call-ledger-head"><b>Recent request</b><b>Page</b><b>Result</b><b>Response</b><b>Time</b></div>{summary.latestCalls.length ? summary.latestCalls.map((call) => <div className="call-row" key={call.id}><code>{capabilityLabel(call.toolName)}</code><span>{call.route}</span><b className={call.ok ? "call-ok" : "call-error"}>{call.code}</b><span>{call.durationMs.toFixed(2)} ms</span><time dateTime={call.startedAt}>{new Date(call.startedAt).toLocaleTimeString()}</time></div>) : <p>Ask your assistant about Velaire in this ChatGPT conversation; its activity will appear here.</p>}</div>
     <small className="metrics-scope">{summary.scope}</small>
   </section>;
 }
 
 function OperationsPage({ status }: { status: WebMCPStatus | null }) {
   const [copyLabel, setCopyLabel] = useState("Copy agent task");
-  const prompt = "Use Velaire's WebMCP tools to inspect the official HVAC market context, compare a $175 cooling-diagnostic offer with Velaire's published band, and prepare a 7-day heat-pump-upgrade plan starting 2026-09-08. Then read WebMCP health. Explain the source limitation and do not book, approve, pay, or claim the national index is a Chicago residential quote.";
+  const prompt = "What public pricing context does Velaire show, and how does a $175 cooling diagnostic compare with its own published range? Prepare a seven-day heat-pump-upgrade work plan starting September 8, 2026, then show me how well this website's assistant capabilities have been performing. Explain every source limitation. Do not book, approve, or pay for anything.";
   return <main className="operations-page">
-    <div className="operations-hero"><div><p className="eyebrow light">Velaire agent operations · synthetic demo</p><h1>The service plan<br />has receipts, too.</h1><p>One shared surface for sourced market context, inspectable project delivery, and live WebMCP health.</p></div><aside><span className={status?.supported ? "live-orb" : "standby-orb"} /><b>{status?.supported ? `${status.registered.length} WebMCP tools are ready` : "Open in ChatGPT to connect WebMCP"}</b><label htmlFor="operations-prompt">Ask in this ChatGPT chat</label><textarea id="operations-prompt" value={prompt} readOnly rows={6} onFocus={(event) => event.currentTarget.select()} /><button className="button copper" onClick={async () => { try { await navigator.clipboard.writeText(prompt); setCopyLabel("Copied"); } catch { setCopyLabel("Select and copy"); } }}>{copyLabel}</button><small>Agent can inspect and prepare. It cannot approve or commit work.</small></aside></div>
+    <div className="operations-hero"><div><p className="eyebrow light">Velaire service intelligence · synthetic demo</p><h1>The service plan<br />has receipts, too.</h1><p>One shared surface for sourced market context, inspectable project delivery, and live assistant performance.</p></div><aside><span className={status?.supported ? "live-orb" : "standby-orb"} /><b>{status?.supported ? "Your assistant is connected to this page" : "Open this page in ChatGPT for assistance"}</b><label htmlFor="operations-prompt">Ask in this ChatGPT chat</label><textarea id="operations-prompt" value={prompt} readOnly rows={6} onFocus={(event) => event.currentTarget.select()} /><button className="button copper" onClick={async () => { try { await navigator.clipboard.writeText(prompt); setCopyLabel("Copied"); } catch { setCopyLabel("Select and copy"); } }}>{copyLabel}</button><small>Your assistant can inspect and prepare. It cannot approve or commit work.</small></aside></div>
     <MarketPanel />
     <ProjectPlanner />
     <ObservabilityPanel />
@@ -325,7 +340,7 @@ function RequestForm() {
         preferredWindows: ["Today, 2–4 PM"],
         constraints: ["No surprise travel fee", "Approval required before additional work"],
         serviceLocation: String(data.get("serviceLocation")),
-        locationPrecision: "area",
+        locationPrecision: String(data.get("locationPrecision")) as "area" | "address",
         locationConsentConfirmed: data.get("locationConsent") === "on",
       }, "human_open_service_case", "customer_human");
       if (result.caseId && !promiseDiffStore.getSharedSession()) {
@@ -343,8 +358,8 @@ function RequestForm() {
       <label>Postcode<input name="postcode" defaultValue="60614" maxLength={12} required /></label>
       <label>Budget ceiling ($)<input name="budgetDollars" type="number" min={0} max={100000} defaultValue={180} required /></label>
     </div>
-    <label>Service area for map link<input name="serviceLocation" defaultValue="Lincoln Park, Chicago, IL 60614" maxLength={240} required /></label>
-    <label className="consent-check"><input name="locationConsent" type="checkbox" defaultChecked required /><span>I confirm this synthetic location can be shared with the owner case.</span></label>
+    <div className="form-grid location-fields"><label>Service address or area<input name="serviceLocation" defaultValue="Lincoln Park, Chicago, IL 60614" maxLength={240} required /></label><label>Location detail<select name="locationPrecision" defaultValue="area"><option value="area">Neighbourhood / area</option><option value="address">Street address</option></select></label></div>
+    <label className="consent-check"><input name="locationConsent" type="checkbox" defaultChecked required /><span>I confirm this synthetic location can be shared with the owner case and returned in map-route links.</span></label>
     <div className="constraint-note"><b>Shared with owner</b><span>Today 2–4 PM · No surprise travel fee · Approval before changed work</span></div>
     <button className="button primary full" type="submit">Open service case <span aria-hidden="true">→</span></button>
     {error && <p className="form-error" role="alert">{error}</p>}
@@ -366,7 +381,7 @@ function Storefront() {
           <h3>{service.name}</h3><p>{service.summary}</p>
           <strong>{money(service.minCents)}–{money(service.maxCents)}</strong>
         </article>)}</div>
-        <h2 className="section-label evidence-heading">Published evidence</h2><EvidenceCards />
+        <h2 className="section-label evidence-heading">Published evidence</h2><p className="evidence-explainer">Dated, canonical records an agent can inspect and cite—with their publisher, freshness, and trust status attached.</p><EvidenceCards />
       </section>
       <aside><RequestForm /></aside>
     </div>
@@ -512,7 +527,7 @@ function SharedCasePanel({ serviceCase }: { serviceCase: ServiceCase }) {
     <div className="shared-case-actions">
       {ownerInvite && <button className="button copper" type="button" onClick={copyInvite}>{copyLabel}</button>}
       <a className="button quiet" href={visuals.visualUrl}>Open case graph ↗</a>
-      <a className="button quiet" href={visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">Open map ↗</a>
+      <a className="button quiet" href={visuals.route?.directions.googleMapsUrl ?? visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">{visuals.route ? "Open driving route ↗" : "Open map ↗"}</a>
     </div>
     {ownerInvite && <small className="capability-warning">Private capability link: send it only to the owner chat. Production would deliver this server-side.</small>}
   </section>;
@@ -540,7 +555,7 @@ function CustomerCase({ serviceCase, judge }: { serviceCase: ServiceCase; judge:
         {serviceCase.receipt && <div className="receipt-callout"><div><span>IMMUTABLE RECEIPT</span><h3>{serviceCase.receipt.id}</h3><p>Accepted offer V{serviceCase.receipt.acceptedOffer.version} is frozen independently of future displays.</p></div><a className="button quiet" href={receiptHref?.toString()}>Open receipt ↗</a></div>}
         <ChangeOrderPanel serviceCase={serviceCase} />
       </div>
-      <aside className="case-side">{judge && <OwnerControls serviceCase={serviceCase} compact />}<AuditRail audit={state.audit} caseId={serviceCase.id} /><div className="side-evidence"><div className="panel-heading"><h2>Source cards</h2><span>canonical</span></div><EvidenceCards compact /></div></aside>
+      <aside className="case-side">{judge && <OwnerControls serviceCase={serviceCase} compact />}<AuditRail audit={state.audit} caseId={serviceCase.id} /><div className="side-evidence"><div className="panel-heading"><h2>Source cards</h2><span>canonical</span></div><p className="evidence-explainer compact">Dated claims with provenance and an explicit trust label.</p><EvidenceCards compact /></div></aside>
     </div>
   </>;
 }
@@ -569,7 +584,7 @@ function OwnerPage({ status }: { status: WebMCPStatus | null }) {
     <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Shared service case</h1><p>The owner agent may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>accessible demo case</span></div></div>
     {selected ? <div className="owner-layout">
       <aside className="case-queue"><h2>Cases</h2>{state.cases.map((item) => <a className={item.id === selected.id ? "selected" : ""} href={`/demo/owner?case=${item.id}`} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
-      <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={caseVisuals(selected, window.location.origin).location.googleMapsUrl} target="_blank" rel="noreferrer">Open service map ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
+      <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={caseVisuals(selected, window.location.origin).route?.directions.googleMapsUrl ?? caseVisuals(selected, window.location.origin).location.googleMapsUrl} target="_blank" rel="noreferrer">Open driving route ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
     </div> : <div className="empty-state"><span>NO CAPABILITY</span><h2>Open the private owner invite from the customer case.</h2><p>A case cannot be discovered by ID alone; the owner URL carries a separate capability token.</p><a className="button primary" href="/demo/customer">Open customer room</a></div>}
   </main>;
 }
@@ -577,7 +592,7 @@ function OwnerPage({ status }: { status: WebMCPStatus | null }) {
 function EvidencePage({ sourceId }: { sourceId: string }) {
   const source = EVIDENCE.find((item) => item.id === sourceId);
   if (!source) return <NotFound />;
-  return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><article className="source-document"><header><div><p className="eyebrow">Canonical source card</p><h1>{titleCase(source.topic)}</h1></div><SyntheticFlag /></header><blockquote>{source.claim}</blockquote><dl><div><dt>Publisher</dt><dd>{source.publisher}</dd></div><div><dt>Evidence type</dt><dd>{source.evidenceType.replaceAll("_", " ")}</dd></div><div><dt>Refreshed</dt><dd>{new Date(source.refreshedAt).toLocaleDateString()}</dd></div><div><dt>Verification</dt><dd>Not independently verified</dd></div></dl><div className="document-warning"><strong>Trust boundary</strong><p>This source exists solely for the fictional Velaire demonstration. Agents receive its provenance and untrusted-content status with the claim.</p></div></article></main>;
+  return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><article className="source-document"><header><span className="source-document-icon"><EvidenceIcon topic={source.topic} /></span><div><p className="eyebrow">Canonical source card</p><h1>{titleCase(source.topic)}</h1></div><SyntheticFlag /></header><blockquote>{source.claim}</blockquote><dl><div><dt>Publisher</dt><dd>{source.publisher}</dd></div><div><dt>Evidence type</dt><dd>{source.evidenceType.replaceAll("_", " ")}</dd></div><div><dt>Refreshed</dt><dd>{new Date(source.refreshedAt).toLocaleDateString()}</dd></div><div><dt>Verification</dt><dd>Not independently verified</dd></div></dl><div className="document-warning"><strong>Trust boundary</strong><p>This source exists solely for the fictional Velaire demonstration. Agents receive its provenance and untrusted-content status with the claim.</p></div></article></main>;
 }
 
 function ReceiptPage({ receiptId }: { receiptId: string }) {
@@ -621,8 +636,8 @@ function CaseGraphPage({ caseId }: { caseId: string }) {
         </svg>
       </div>
       <div className="graph-summary-grid"><section><span>CURRENT STAGE</span><strong>{visuals.stageLabel}</strong><small>Case rev {visuals.revision}</small></section><section><span>SERVICE LOCATION</span><strong>{visuals.location.text}</strong><small>{visuals.location.customerConfirmed ? "Customer confirmed" : "Postcode-derived search"}</small></section><section><span>LATEST OFFER</span><strong>{visuals.totals.latestOfferCents === null ? "Not sent" : money(visuals.totals.latestOfferCents)}</strong><small>Accepted: {visuals.totals.acceptedCents === null ? "—" : money(visuals.totals.acceptedCents)}</small></section></div>
-      <div className="button-row graph-links"><a className="button primary" href={visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">Google Maps search ↗</a><a className="button quiet" href={visuals.location.openStreetMapUrl} target="_blank" rel="noreferrer">OpenStreetMap ↗</a></div>
-      <p className="graph-limitation">{visuals.location.limitation}</p>
+      {visuals.route && <section className="route-card"><header><div><span>DRIVING PLAN · SYNTHETIC RANGE</span><h2>{visuals.route.planningEstimate.lowerMinutes}–{visuals.route.planningEstimate.upperMinutes} min</h2><p>If dispatch left now: {visuals.route.planningEstimate.display}</p></div><div className="route-authority"><span>SERVICE WINDOW</span><b>{visuals.route.requestedOrOfferedWindow ?? "Not set"}</b><small>{visuals.route.windowAuthority.replaceAll("_", " ")}</small></div></header><div className="route-track"><div><i aria-hidden="true" /><span>FROM</span><b>{visuals.route.origin.text}</b><small>{visuals.route.origin.label}</small></div><span className="route-line" aria-hidden="true">DRIVING</span><div><i aria-hidden="true" /><span>TO</span><b>{visuals.route.destination.text}</b><small>Customer-confirmed {visuals.route.destination.precision}</small></div></div><div className="button-row graph-links"><a className="button primary" href={visuals.route.directions.googleMapsUrl} target="_blank" rel="noreferrer">Google driving route ↗</a><a className="button quiet" href={visuals.route.directions.appleMapsUrl} target="_blank" rel="noreferrer">Apple Maps ↗</a><a className="button quiet" href={visuals.location.openStreetMapUrl} target="_blank" rel="noreferrer">OpenStreetMap search ↗</a></div><p className="graph-limitation">{visuals.route.limitation}</p></section>}
+      {!visuals.route && <><div className="button-row graph-links"><a className="button primary" href={visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">Google Maps search ↗</a><a className="button quiet" href={visuals.location.openStreetMapUrl} target="_blank" rel="noreferrer">OpenStreetMap ↗</a></div><p className="graph-limitation">Confirm a service location to create driving links and a planning arrival range.</p></>}
     </article>
   </main>;
 }

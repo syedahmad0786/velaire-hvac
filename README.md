@@ -8,10 +8,10 @@ The synthetic HVAC demo tells one complete story:
 
 ## Try it with ChatGPT
 
-1. In customer ChatGPT chat A, open `/demo/customer` and ask: “Use Velaire's WebMCP tools to check same-day AC service in 60614 under a $180 ceiling. Show the evidence, then open the synthetic case.”
+1. In customer ChatGPT chat A, open `/demo/customer` and ask naturally: “My AC is blowing warm air in 60614, I can spend up to $180, and I need help today. Can Velaire help? Show me the evidence before opening a synthetic case.”
 2. Copy the private owner invite shown after creation and open it in owner ChatGPT chat B.
 3. Let the owner agent stage a reply or offer, then let the owner press the visible **Send** control.
-4. The customer agent can wait in 15-second rounds, retrieve the new revision, and return structured terms, the case graph URL, and map-search URLs.
+4. Ask the customer agent whether the owner replied. It can retrieve the new revision and return structured terms, the case graph, a clearly labeled planning arrival range, and map routes.
 5. Review every booking or changed-work decision on its own page. Neither agent has an approval tool.
 
 There is no separate WebMCP account or connector to assign. The open page registers its route-specific tools automatically for the browser agent.
@@ -20,7 +20,7 @@ There is no separate WebMCP account or connector to assign. The open page regist
 
 The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate remote MCP server, extension, screen-scraping layer, or AgentLane runtime dependency. A same-origin case API persists the shared business state; it does not replace the page-native WebMCP surface.
 
-- `/` and `/demo/customer` expose 13 foundation/operations tools plus 15 customer agreement tools: 28 total.
+- `/` and `/demo/customer` expose 13 foundation/operations tools plus 16 customer agreement tools: 29 total.
 - `/demo/owner` exposes the same 13 foundation/operations tools plus 6 owner tools: 19 total.
 - `/demo/operations` exposes the 13 foundation/operations tools beside the sourced chart, timeline, Kanban, and telemetry views.
 - `/evidence/:sourceId` exposes one canonical evidence lookup.
@@ -101,6 +101,7 @@ stateDiagram-v2
 | `velaire_get_service_case` | Reads authoritative case state and valid next actions. |
 | `velaire_set_service_location` | Stores customer-supplied location text only with explicit confirmation; never geocodes it. |
 | `velaire_get_case_visuals` | Returns graph nodes, edges, Mermaid text, a canonical graph URL, and map-search URLs. |
+| `velaire_plan_service_route` | Returns Google/Apple driving links and a transparent synthetic arrival-planning band from the fictional Chicago dispatch area. |
 | `velaire_wait_for_owner_reply` | Waits up to 15 seconds for a newer owner event and returns a cursor for bounded cooperative re-polling. |
 | `velaire_submit_case_message` | Adds a version-checked question or counteroffer. |
 | `velaire_compare_offer_versions` | Deterministically compares two sent offers. |
@@ -128,7 +129,8 @@ There is intentionally no agent tool for sending an owner draft, confirming a bo
 - **Route:** customer and owner tools are isolated.
 - **Input:** closed JSON Schemas plus runtime validation and bounded arrays/text.
 - **HVAC safety:** gas smell, sparks, smoke, fire, or carbon-monoxide language stops ordinary booking.
-- **Privacy:** schemas exclude payment data, phone numbers, and email addresses. Customer-supplied service-location text requires explicit confirmation and is returned only as unverified map-search input.
+- **Privacy:** schemas exclude payment data, phone numbers, and email addresses. Customer-supplied service-location text requires explicit confirmation and is returned only as unverified map-search or directions input.
+- **Route truth:** route URLs are real map-provider links; the displayed travel band is synthetic demo planning data, never live traffic, technician tracking, or an arrival promise.
 - **Revision:** state-changing tools must match the current case revision.
 - **Offer:** only the latest sent and unexpired offer can be prepared.
 - **Human:** sending offers, confirming booking, and deciding change orders stay in visible UI.
@@ -165,12 +167,12 @@ Chrome's WebMCP implementation must be enabled for native discovery. Every page 
 
 1. In customer ChatGPT chat A, open `/demo/customer`, create the pre-filled warm-air request, and copy its owner invite.
 2. In owner ChatGPT chat B, open that private invite. Ask the owner agent to stage the `$195` offer, then press **Human: send offer**.
-3. In chat A, call `velaire_wait_for_owner_reply`; it receives revision 2. Call `velaire_get_case_visuals` to show structured graph data plus the graph and map URLs.
-4. Send the pre-filled `$175` counteroffer. In chat B, call `velaire_wait_for_customer_reply`, stage the revised offer, and human-send it.
+3. In chat A, ask “Has the owner replied, and can you show the case history and driving plan?” It receives revision 2 and selects the right retrieval, visual, and route capabilities from that intent.
+4. Ask chat A to counter at `$175`. In chat B, ask whether the customer replied, stage the revised offer, and human-send it.
 5. In chat A, compare versions, prepare the latest version, and use the separate human confirmation gate.
 6. In chat B, stage and human-send the `+$145` capacitor change order. In chat A, compare it against the immutable receipt.
 
-The backend, not tab-local storage, synchronizes the private role URLs. The lightweight page poll keeps both visible views current; the wait tools provide bounded agent-side retrieval.
+The prompts deliberately do not name tools. Tool titles and descriptions map ordinary customer or owner intent to the correct capability. The backend, not tab-local storage, synchronizes the private role URLs; the page poll keeps both views current while bounded wait tools provide agent-side retrieval.
 
 ## Deliberate boundaries
 

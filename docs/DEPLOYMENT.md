@@ -29,7 +29,7 @@ Verify all of the following after deployment:
 
 1. `/`, `/demo/customer?judge=1`, `/demo/owner`, `/demo/operations`, `/evidence/pricing`, and an unknown route return the intended app state.
 2. Response headers include `Permissions-Policy: tools=(self)`, `Origin-Agent-Cluster: ?1`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin`.
-3. The customer route discovers exactly 28 tools, the owner route exactly 19, the operations route exactly 13, an evidence route exactly 1, and a receipt route exactly 1.
+3. The customer route discovers exactly 29 tools, the owner route exactly 19, the operations route exactly 13, an evidence route exactly 1, and a receipt route exactly 1.
 4. Customer and owner tools never appear together.
 5. A complete synthetic case survives refresh and synchronizes across separate customer and owner capability URLs.
 6. The market chart exposes its underlying BLS/FRED values and limitation; a plan accepts only 3–10 days; the observability ledger updates after both successful and failed calls.

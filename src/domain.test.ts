@@ -13,7 +13,7 @@ import {
 import { PromiseDiffStore } from "./store";
 import { installWebMCP, waitForOwnerReply } from "./webmcp";
 import { compareQuoteContext, createProjectPlan, getMarketContext, searchSite, summarizeMetrics } from "./operations";
-import { caseVisuals } from "./case-visuals";
+import { caseVisuals, planServiceRoute } from "./case-visuals";
 
 const context: RuntimeContext = (() => {
   let id = 0;
@@ -186,6 +186,12 @@ describe("Velaire agreement boundary", () => {
     expect(visual.mermaid).toContain("flowchart LR");
     expect(visual.visualUrl).toContain("access=customer-token");
     expect(visual.location.googleMapsUrl).toContain("Lincoln%20Park");
+    const route = planServiceRoute(serviceCase, "2026-09-04T15:00:00.000Z")!;
+    expect(route.planningEstimate).toMatchObject({ lowerMinutes: 15, upperMinutes: 30, earliestArrivalAt: "2026-09-04T15:15:00.000Z", latestArrivalAt: "2026-09-04T15:30:00.000Z", liveTraffic: false });
+    expect(route.directions.googleMapsUrl).toContain("travelmode=driving");
+    expect(route.directions.googleMapsUrl).toContain("Lincoln+Park");
+    expect(route.directions.appleMapsUrl).toContain("dirflg=d");
+    expect(route.windowAuthority).toBe("customer_requested");
 
     const rejected = send(store, {
       type: "SET_SERVICE_LOCATION",
@@ -228,7 +234,7 @@ describe("Velaire agreement boundary", () => {
     vi.stubGlobal("window", fakeWindow);
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
-    expect(customer.registered).toHaveLength(28);
+    expect(customer.registered).toHaveLength(29);
     expect(customer.registered).toContain("velaire_get_site_manifest");
     expect(customer.registered).toContain("velaire_get_market_price_context");
     expect(customer.registered).toContain("velaire_prepare_project_plan");
@@ -237,6 +243,7 @@ describe("Velaire agreement boundary", () => {
     expect(customer.registered).toContain("velaire_audit_invoice_against_receipt");
     expect(customer.registered).toContain("velaire_set_service_location");
     expect(customer.registered).toContain("velaire_get_case_visuals");
+    expect(customer.registered).toContain("velaire_plan_service_route");
     const customerRead = await registrations.find((tool) => tool.name === "velaire_get_service_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
@@ -261,6 +268,16 @@ describe("Velaire agreement boundary", () => {
       { months: 2 }, { signal: new AbortController().signal },
     ) as { code: string };
     expect(invalidMarket.code).toBe("INVALID_STATE");
+    await registrations.find((tool) => tool.name === "velaire_set_service_location")!.execute(
+      { caseId, expectedRevision: 2, serviceLocation: "Lincoln Park, Chicago, IL 60614", precision: "area", consentConfirmed: true },
+      { signal: new AbortController().signal },
+    );
+    const route = await registrations.find((tool) => tool.name === "velaire_plan_service_route")!.execute(
+      { caseId, departAt: "2026-09-04T15:00:00.000Z" }, { signal: new AbortController().signal },
+    ) as { code: string; data: { planningEstimate: { lowerMinutes: number; liveTraffic: boolean }; directions: { googleMapsUrl: string } } };
+    expect(route.code).toBe("OK");
+    expect(route.data.planningEstimate).toEqual(expect.objectContaining({ lowerMinutes: 15, liveTraffic: false }));
+    expect(route.data.directions.googleMapsUrl).toContain("travelmode=driving");
     customer.dispose();
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
@@ -290,9 +307,9 @@ describe("Velaire agreement boundary", () => {
       },
     });
     const pending = installWebMCP(new PromiseDiffStore(initialState()), "customer");
-    expect(registrations).toHaveLength(28);
+    expect(registrations).toHaveLength(29);
     releases.forEach((release) => release());
-    expect((await pending).registered).toHaveLength(28);
+    expect((await pending).registered).toHaveLength(29);
     vi.unstubAllGlobals();
   });
 });

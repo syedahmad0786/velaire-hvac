@@ -8,7 +8,11 @@ The market chart uses BLS series `PCU23822X23822X`, distributed by FRED. The emb
 
 The 3–10 day plan is a browser-local draft with task dependencies and required proof. Preparing it changes the visible planning board but cannot promise an appointment, crew, equipment, inspection, or completion date. Tool health records only name, route, result code, read/action intent, and handler duration; it never stores inputs or outputs.
 
-This reaches 28 customer tools and 19 owner tools without page-per-tool padding. The shared tools answer reusable website and operations intents; 15 customer and 6 owner tools provide the durable two-chat agreement workflow, location consent, structured case visuals, and role-specific waiting.
+This reaches 29 customer tools and 19 owner tools without page-per-tool padding. The shared tools answer reusable website and operations intents; 16 customer and 6 owner tools provide the durable two-chat agreement workflow, location consent, structured case visuals, route planning, and role-specific waiting.
+
+### `velaire_plan_service_route`
+
+Maps ordinary questions such as “How long would it take you to reach me?” to a read-only route result. It requires a customer-confirmed location, returns direct Google and Apple driving links, and exposes a deterministic synthetic postcode band with earliest/latest arrival planning times. It explicitly reports `liveTraffic: false`; no map, traffic, GPS, or technician-tracking claim is fabricated. A production version would replace the band with a server-side distance-matrix provider and dispatch telemetry under customer consent.
 
 ## Submission patterns adapted
 

@@ -6,9 +6,9 @@ When this page is open in a supporting agent browser, it automatically registers
 
 ## Primary routes
 
-- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 26 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
-- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 26 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
-- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 18 tools: 13 shared foundation/operations tools and 5 private-draft owner tools. Sending remains a human action.
+- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 29 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
+- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 29 customer tools beside the visible request, route plan, negotiation, booking, receipt, and change-order interface.
+- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 19 tools: 13 shared foundation/operations tools and 6 private owner tools. Sending remains a human action.
 - [Agent operations](https://promisediff-webmcp.vercel.app/demo/operations): Registers 13 foundation/operations tools beside the BLS/FRED chart, 3–10 day timeline/Kanban, and live call-health ledger.
 - [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
 
@@ -28,7 +28,10 @@ When this page is open in a supporting agent browser, it automatically registers
 - `velaire_get_project_preflight`: Read-only project checklist plus freshness-dated official permit, rebate, utility, and federal source routes; never an eligibility decision.
 - `velaire_open_service_case`: Open a bounded request. It does not book, charge, diagnose equipment, or collect direct contact details.
 - `velaire_get_service_case`: Read the current case revision, sent terms, pending human decision, and valid next actions.
-- `velaire_wait_for_owner_reply`: Wait up to 20 seconds for a newer human-sent owner event; timeout and cancellation do not mutate state.
+- `velaire_set_service_location`: Store bounded customer-supplied location text only with explicit confirmation; never geocode it.
+- `velaire_get_case_visuals`: Return the structured event graph, canonical visual URL, totals, and map-search links.
+- `velaire_plan_service_route`: Return direct Google/Apple driving links and a synthetic postcode planning band; never claim live traffic, GPS, or an arrival promise.
+- `velaire_wait_for_owner_reply`: Wait in rounds of up to 15 seconds for a newer human-sent owner event; timeout and cancellation do not mutate state.
 - `velaire_submit_case_message`: Send a revision-checked question or counteroffer.
 - `velaire_compare_offer_versions`: Deterministically compare two sent offers without changing the case.
 - `velaire_prepare_booking`: Stage the latest unexpired offer for visible human confirmation; it cannot confirm or charge.
@@ -40,10 +43,11 @@ When this page is open in a supporting agent browser, it automatically registers
 
 - `velaire_list_service_cases` and `velaire_get_owner_case`: Read the owner queue and authoritative case.
 - `velaire_stage_owner_reply`, `velaire_stage_service_offer`, and `velaire_stage_change_order`: Create private drafts only. A visible human must send each draft.
+- `velaire_wait_for_customer_reply`: Wait in rounds of up to 15 seconds for a newer customer event without mutating the case.
 
 ## Trust and safety
 
-All businesses, people, reviews, credentials, prices, bookings, and records are fictional. Evidence cards declare that they are synthetic and not independently verified. Review content is marked untrusted. Gas-smell, smoke, sparking, fire, and carbon-monoxide phrases stop the ordinary service workflow. The demo neither diagnoses equipment nor takes payment, books a real appointment, or collects exact addresses or direct contact details.
+All businesses, people, reviews, credentials, prices, bookings, and records are fictional. Evidence cards declare that they are synthetic and not independently verified. Review content is marked untrusted. Gas-smell, smoke, sparking, fire, and carbon-monoxide phrases stop the ordinary service workflow. The demo neither diagnoses equipment nor takes payment, books a real appointment, or collects direct contact details. A user may provide a synthetic location with explicit confirmation for map links; it is not geocoded or verified.
 
 ## Intended agent behavior
 

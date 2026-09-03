@@ -20,7 +20,7 @@ import {
   type ToolResult,
   type Urgency,
 } from "./domain";
-import { caseVisuals } from "./case-visuals";
+import { caseVisuals, planServiceRoute } from "./case-visuals";
 import { PromiseDiffStore } from "./store";
 import {
   MARKET_SERIES,
@@ -724,7 +724,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     },
     {
       name: "velaire_set_service_location",
-      title: "Set customer-confirmed service location",
+      title: "Record customer-approved service location",
       description: "Stores bounded customer-supplied location text on the shared case only when consentConfirmed is true. It returns map-search links but does not geocode, verify coordinates, promise travel, or collect contact/payment data.",
       inputSchema: {
         type: "object",
@@ -759,8 +759,8 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     },
     {
       name: "velaire_get_case_visuals",
-      title: "Get case graph and map links",
-      description: "Returns a chat-ready structured event graph, Mermaid flowchart, exact case/revision totals, canonical visual-page URL, and Google Maps/OpenStreetMap search links. Read-only; location text is customer-supplied and not geocoded or verified.",
+      title: "Show service-case history and visual links",
+      description: "Use when the customer asks to see the conversation history, progress graph, negotiation timeline, current totals, or map search. Returns a chat-ready event graph, Mermaid flowchart, exact case/revision totals, canonical visual-page URL, and map-search links. Read-only; location text is customer-supplied and not geocoded or verified.",
       inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: async (value) => {
@@ -771,6 +771,43 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           if (!serviceCase) return notFound(`Service case ${caseId}`);
           return readResult(caseVisuals(serviceCase, window.location.origin, store.getSharedSession()?.accessToken), serviceCase.revision, caseId, nextActionsFor(serviceCase));
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_plan_service_route",
+      title: "Estimate the technician route and arrival range",
+      description: "Use when a customer asks how Velaire would drive to them, which route to take, how long travel may take, or when dispatch might arrive. Returns a route-ready origin, customer-confirmed destination, synthetic postcode travel band, earliest/latest planning arrival, scheduling authority, and Google/Apple driving links. Read-only. It does not geocode, use live traffic or technician GPS, promise arrival, or open a map without the user choosing a link.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["caseId"],
+        properties: { caseId: CASE_ID, departAt: { type: "string", format: "date-time", maxLength: 80 } },
+      },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: async (value) => {
+        try {
+          const input = record(value, ["caseId", "departAt"]);
+          const caseId = requiredString(input, "caseId", 80);
+          const departAt = optionalString(input, "departAt", 80);
+          await store.refreshShared();
+          const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
+          if (!serviceCase) return notFound(`Service case ${caseId}`);
+          const route = planServiceRoute(serviceCase, departAt);
+          if (!route) return {
+            ok: false,
+            code: "INVALID_STATE",
+            caseId,
+            beforeRevision: serviceCase.revision,
+            afterRevision: serviceCase.revision,
+            effect: "A customer-confirmed service location is required before route planning.",
+            didNot: ["No location was inferred.", "No map provider was contacted.", "No arrival was promised."],
+            humanActionRequired: true,
+            nextActions: ["set_service_location_with_customer_consent"],
+          };
+          return readResult(route, serviceCase.revision, caseId, nextActionsFor(serviceCase));
         } catch (error) {
           return invalid(error);
         }
