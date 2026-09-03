@@ -1,6 +1,22 @@
 # Advanced HVAC tools and production path
 
-## What was added
+## Foundation and operations layer
+
+Velaire now exposes a 13-tool shared layer on customer, owner, and operations routes. Eight tools cover the normal website foundation—manifest, scoped search, service catalog/detail, service area, policies, safe contact routes, and workflow help. Five cover service operations: dated market context, quote-to-published-band comparison, project-plan preparation/retrieval, and privacy-safe WebMCP health.
+
+The market chart uses BLS series `PCU23822X23822X`, distributed by FRED. The embedded snapshot was checked on 2026-09-03 and reports December 2025 through July 2026. It is deliberately labeled as a national, nonresidential contractor output-price index—not a Chicago residential quote, parts price, or fairness score. Agents receive every plotted value and both canonical source URLs.
+
+The 3–10 day plan is a browser-local draft with task dependencies and required proof. Preparing it changes the visible planning board but cannot promise an appointment, crew, equipment, inspection, or completion date. Tool health records only name, route, result code, read/action intent, and handler duration; it never stores inputs or outputs.
+
+This reaches 26 customer tools and 18 owner tools without page-per-tool padding. The shared tools answer reusable website and operations intents; the 13 customer and 5 owner tools retain the agreement workflow.
+
+## Submission patterns adapted
+
+- [SheetCanvas](https://devpost.com/software/sheetcanvas) demonstrates a shared command registry, visible activity, and state-aware tools. Velaire applies that pattern to an HVAC cost chart, project plan, and call ledger instead of cloning a general chart editor.
+- [2D WebMCP](https://devpost.com/software/screen-readers-webmcp) returns inspectable state changes and proof links. Velaire likewise returns the underlying chart/task data plus canonical deep links so an agent's claim can be checked on screen.
+- The [OpenAI WebMCP guide](https://learn.chatgpt.com/docs/webmcp) specifically identifies dashboard tools that set or inspect chart data. Velaire keeps the chart domain-specific and source-bounded.
+
+## Agreement-aware tools
 
 The final customer route exposes three agreement-aware tools beyond the core service-case journey.
 
@@ -34,6 +50,7 @@ Directory snapshot checked on 2026-09-03: 475 sites and 2,989 tools. See [live d
 | Illinois EPA | State home energy rebate status | https://epa.illinois.gov/topics/energy/energy-rebates.html | Program status is time-sensitive and not retroactive. |
 | ComEd | Utility incentives and financing | https://goelectric.comed.com/incentives-and-financing/ | Possible programs require current terms and utility eligibility. |
 | ENERGY STAR | Federal credit status | https://www.energystar.gov/about/federal-tax-credits | Do not assume a prior credit remains current. |
+| U.S. Bureau of Labor Statistics / FRED | National HVAC contractor output-price direction | https://fred.stlouisfed.org/series/PCU23822X23822X | Directional context only; never a local residential quote or fairness score. |
 
 This ledger is curated demo data, not live legal or tax advice. A production service must fetch and hash the current source, retain the retrieval time, detect content changes, and route ambiguous updates to a reviewer before publishing them to agents.
 

@@ -3,6 +3,7 @@ import {
   checkServiceFit,
   compareChangeOrder,
   compareOfferVersions,
+  SERVICES,
   estimateServiceRange,
   getEvidence,
   getProjectPreflight,
@@ -20,8 +21,19 @@ import {
   type Urgency,
 } from "./domain";
 import { PromiseDiffStore } from "./store";
+import {
+  MARKET_SERIES,
+  SITE_MANIFEST,
+  compareQuoteContext,
+  getMarketContext,
+  operationsStore,
+  searchSite,
+  summarizeMetrics,
+  type PlanType,
+  type SiteSearchScope,
+} from "./operations";
 
-export type ToolRoute = "customer" | "owner" | "evidence" | "receipt" | "none";
+export type ToolRoute = "customer" | "owner" | "operations" | "evidence" | "receipt" | "none";
 
 export interface WebMCPStatus {
   supported: boolean;
@@ -135,7 +147,7 @@ function readResult<T>(data: T, revision = 0, caseId?: string, nextActions: stri
     caseId,
     beforeRevision: revision,
     afterRevision: revision,
-    effect: "Read authoritative Velaire service-case state without changing it.",
+    effect: "Read authoritative Velaire page data without changing it.",
     didNot: ["No case state changed."],
     humanActionRequired: false,
     data,
@@ -256,6 +268,225 @@ export function waitForOwnerReply(
 }
 
 type ToolDefinition = WebMCPTool;
+
+function commonTools(route: ToolRoute): ToolDefinition[] {
+  const serviceIdSchema = { type: "string", enum: ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] };
+  return [
+    {
+      name: "velaire_get_site_manifest",
+      title: "Get site manifest",
+      description: "Returns Velaire's identity, canonical routes, service area, WebMCP capability groups, and trust boundaries. Read-only.",
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          record(value, []);
+          return readResult({ ...SITE_MANIFEST, routes: SITE_MANIFEST.routes.map((item) => ({ ...item, url: canonical(item.path) })) });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_search_site",
+      title: "Search this website",
+      description: "Searches Velaire services, policy evidence, and agent-help records and returns canonical page URLs. Read-only; it does not search the wider web.",
+      inputSchema: {
+        type: "object", additionalProperties: false, required: ["query"],
+        properties: { query: text(160), scope: { type: "string", enum: ["all", "services", "policies", "help"] } },
+      },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["query", "scope"]);
+          const scope = input.scope === undefined ? "all" : oneOf<SiteSearchScope>(input, "scope", ["all", "services", "policies", "help"]);
+          const results = searchSite(requiredString(input, "query", 160), scope).map((item) => ({ ...item, url: canonical(item.path) }));
+          return readResult({ query: input.query, scope, count: results.length, results });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_list_services",
+      title: "List HVAC services",
+      description: "Lists every published Velaire demo service with its synthetic price band, eligibility, required details, and canonical evidence URL. Read-only.",
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          record(value, []);
+          return readResult(SERVICES.map((service) => ({ ...service, canonicalUrl: canonical(service.canonicalPath), syntheticPricing: true })));
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_service_details",
+      title: "Get HVAC service details",
+      description: "Returns one published service definition, synthetic planning range, required inputs, and source URL. Read-only; it is not a diagnosis or quote.",
+      inputSchema: { type: "object", additionalProperties: false, required: ["serviceId"], properties: { serviceId: serviceIdSchema } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["serviceId"]);
+          const serviceId = oneOf(input, "serviceId", ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] as const);
+          const service = SERVICES.find((item) => item.id === serviceId);
+          return service ? readResult({ ...service, canonicalUrl: canonical(service.canonicalPath), syntheticPricing: true }) : notFound(`Service ${serviceId}`);
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_check_service_area",
+      title: "Check service area",
+      description: "Checks a postcode against Velaire's fictional published Chicago service area. Read-only; it does not check a precise address or promise travel availability.",
+      inputSchema: { type: "object", additionalProperties: false, required: ["postcode"], properties: { postcode: text(12) } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["postcode"]);
+          const postcode = requiredString(input, "postcode", 12);
+          const served = SITE_MANIFEST.serviceArea.includes(postcode as (typeof SITE_MANIFEST.serviceArea)[number]);
+          return readResult({ postcode, status: served ? "served" : "outside_demo_area", publishedPostcodes: SITE_MANIFEST.serviceArea, requestUrl: canonical("/demo/customer?judge=1"), limitation: "Postcode fit is not a promised appointment or address-level determination." });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_policies",
+      title: "Get service policies",
+      description: "Returns one or all canonical pricing, availability, cancellation, and warranty policy cards with freshness and synthetic status. Read-only.",
+      inputSchema: { type: "object", additionalProperties: false, properties: { topic: { type: "string", enum: ["pricing", "availability", "cancellation", "warranty"] } } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["topic"]);
+          const topics: EvidenceTopic[] = input.topic === undefined ? ["pricing", "availability", "cancellation", "warranty"] : [oneOf<EvidenceTopic>(input, "topic", ["pricing", "availability", "cancellation", "warranty"])];
+          return readResult(getEvidence(topics).map((item) => ({ ...item, sourceUrl: canonical(item.canonicalPath) })));
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_contact_options",
+      title: "Get contact and escalation options",
+      description: "Returns safe, canonical ways to request service, review a case, reach the owner demo desk, or respond to an HVAC emergency. Read-only; no real phone, email, or messaging account is exposed.",
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          record(value, []);
+          return readResult({
+            serviceRequest: { label: "Open customer service room", url: canonical("/demo/customer?judge=1") },
+            ownerEscalation: { label: "Open fictional owner desk", url: canonical("/demo/owner"), limitation: "Demo route only; not production authentication or a real message channel." },
+            emergency: { trigger: "Gas smell, smoke, fire, sparks, or carbon-monoxide warning", action: "Leave the affected area and contact local emergency services or the utility emergency line. Do not use the ordinary booking flow." },
+          });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_agent_help",
+      title: "Get agent workflow help",
+      description: "Returns the safe WebMCP tool sequence and human boundary for a discovery, request, negotiation, booking, project-planning, or invoice-audit task. Read-only.",
+      inputSchema: { type: "object", additionalProperties: false, required: ["task"], properties: { task: { type: "string", enum: ["discover", "request", "negotiate", "book", "project", "audit"] } } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["task"]);
+          const task = oneOf(input, "task", ["discover", "request", "negotiate", "book", "project", "audit"] as const);
+          const workflows = {
+            discover: ["velaire_search_site", "velaire_list_services", "velaire_get_service_details", "velaire_get_policies"],
+            request: ["velaire_check_service_fit", "velaire_estimate_service_range", "velaire_open_service_case", "velaire_get_service_case"],
+            negotiate: ["velaire_get_service_case", "velaire_compare_offer_versions", "velaire_submit_case_message", "velaire_wait_for_owner_reply"],
+            book: ["velaire_get_service_case", "velaire_prepare_booking", "human_confirm_on_page", "velaire_get_booking_receipt"],
+            project: ["velaire_get_market_price_context", "velaire_compare_quote_context", "velaire_prepare_project_plan", "velaire_get_project_plan"],
+            audit: ["velaire_get_booking_receipt", "velaire_compare_change_order", "velaire_audit_invoice_against_receipt"],
+          };
+          return readResult({ task, sequence: workflows[task], operationsUrl: canonical("/demo/operations"), humanBoundary: "The agent cannot send an owner commitment, confirm a booking, approve changed work, or make payment." });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_market_price_context",
+      title: "Get HVAC market cost context",
+      description: "Returns a dated 3–8 month BLS/FRED national nonresidential HVAC-contractor price index with underlying chart values and source URLs. Read-only; it is not a local residential quote or price-fairness score.",
+      inputSchema: { type: "object", additionalProperties: false, properties: { months: { type: "integer", minimum: 3, maximum: 8 } } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["months"]);
+          return readResult({ ...getMarketContext(optionalInteger(input, "months", 3, 8) ?? 8), chartUrl: canonical("/demo/operations#market") });
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_compare_quote_context",
+      title: "Compare quote with published context",
+      description: "Compares a quote only with Velaire's fictional published service band and attaches the separate national BLS/FRED directional signal. Read-only; it does not determine fair value, diagnose work, or recommend approval.",
+      inputSchema: { type: "object", additionalProperties: false, required: ["serviceId", "quoteCents"], properties: { serviceId: serviceIdSchema, quoteCents: { ...MONEY, minimum: 1 } } },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          const input = record(value, ["serviceId", "quoteCents"]);
+          const comparison = compareQuoteContext(oneOf(input, "serviceId", ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] as const), integer(input, "quoteCents", 1));
+          return comparison ? readResult({ ...comparison, chartUrl: canonical("/demo/operations#market") }) : notFound("Service rate card");
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_prepare_project_plan",
+      title: "Prepare service project plan",
+      description: "Creates a browser-local 3–10 day planning draft and visible timeline/Kanban board at an exact plan revision. It does not promise dates, assign a real crew, order equipment, schedule an inspection, or approve work.",
+      inputSchema: {
+        type: "object", additionalProperties: false, required: ["projectType", "startDate", "durationDays", "expectedRevision"],
+        properties: {
+          projectType: { type: "string", enum: ["diagnostic", "repair", "equipment_replacement", "heat_pump_upgrade"] },
+          startDate: { type: "string", format: "date" }, durationDays: { type: "integer", minimum: 3, maximum: 10 }, expectedRevision: REVISION,
+        },
+      },
+      execute: (value) => {
+        try {
+          const input = record(value, ["projectType", "startDate", "durationDays", "expectedRevision"]);
+          const before = operationsStore.getSnapshot().plan.revision;
+          const outcome = operationsStore.preparePlan({
+            projectType: oneOf<PlanType>(input, "projectType", ["diagnostic", "repair", "equipment_replacement", "heat_pump_upgrade"]),
+            startDate: requiredString(input, "startDate", 10), durationDays: integer(input, "durationDays", 3, 10), expectedRevision: integer(input, "expectedRevision", 0),
+          });
+          return outcome.ok ? {
+            ...readResult({ ...outcome.plan, planUrl: canonical("/demo/operations#project") }, outcome.plan.revision),
+            beforeRevision: before,
+            effect: `Prepared visible project-plan revision ${outcome.plan.revision}.`,
+            didNot: ["No appointment, crew, equipment, inspection, payment, or completion date was committed."],
+          } : {
+            ok: false, code: "STALE_REVISION", beforeRevision: before, afterRevision: before,
+            effect: outcome.error ?? "The plan changed.", didNot: ["No planning state changed."], humanActionRequired: false,
+            data: outcome.plan, nextActions: ["get_project_plan"],
+          };
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_project_plan",
+      title: "Get service project plan",
+      description: "Returns the current browser-local planning draft, task dependencies, proof requirements, underlying timeline data, and canonical board URL. Read-only.",
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          record(value, []);
+          const plan = operationsStore.getSnapshot().plan;
+          return readResult({ ...plan, planUrl: canonical("/demo/operations#project") }, plan.revision);
+        } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_get_webmcp_health",
+      title: "Get WebMCP health",
+      description: "Returns privacy-safe browser-local WebMCP call counts, result codes, read/action split, average latency, p95 latency, and recent calls. Read-only; inputs and outputs are never logged, and the current health call appears only after it returns.",
+      inputSchema: { type: "object", additionalProperties: false, properties: {} },
+      annotations: { readOnlyHint: true },
+      execute: (value) => {
+        try {
+          record(value, []);
+          return readResult({ route, ...summarizeMetrics(operationsStore.getSnapshot().metrics), dashboardUrl: canonical("/demo/operations#observability"), marketSeriesId: MARKET_SERIES.seriesId });
+        } catch (error) { return invalid(error); }
+      },
+    },
+  ];
+}
 
 function customerTools(store: PromiseDiffStore): ToolDefinition[] {
   return [
@@ -780,15 +1011,49 @@ export async function installWebMCP(store: PromiseDiffStore, route: ToolRoute): 
   const modelContext = document.modelContext;
   if (window.top !== window || !modelContext?.registerTool) return status;
   status.supported = true;
-  const tools = route === "customer" ? customerTools(store)
-    : route === "owner" ? ownerTools(store)
+  const shared = route === "customer" || route === "owner" || route === "operations" ? commonTools(route) : [];
+  const tools = route === "customer" ? [...shared, ...customerTools(store)]
+    : route === "owner" ? [...shared, ...ownerTools(store)]
+      : route === "operations" ? shared
       : route === "evidence" ? evidenceTool()
         : route === "receipt" ? receiptTool(store)
           : [];
 
   const errors = await Promise.all(tools.map(async (tool) => {
     try {
-      await modelContext.registerTool(tool, { signal: controller.signal });
+      const instrumented: ToolDefinition = {
+        ...tool,
+        execute: async (input, options) => {
+          const startedAt = new Date().toISOString();
+          const started = performance.now();
+          try {
+            const output = await tool.execute(input, options);
+            const envelope = output && typeof output === "object" ? output as { ok?: unknown; code?: unknown } : {};
+            operationsStore.recordMetric({
+              toolName: tool.name,
+              route,
+              startedAt,
+              durationMs: Number((performance.now() - started).toFixed(2)),
+              ok: envelope.ok !== false,
+              code: typeof envelope.code === "string" ? envelope.code : "OK",
+              readOnly: tool.annotations?.readOnlyHint === true,
+            });
+            return output;
+          } catch (error) {
+            operationsStore.recordMetric({
+              toolName: tool.name,
+              route,
+              startedAt,
+              durationMs: Number((performance.now() - started).toFixed(2)),
+              ok: false,
+              code: "UNCAUGHT_ERROR",
+              readOnly: tool.annotations?.readOnlyHint === true,
+            });
+            throw error;
+          }
+        },
+      };
+      await modelContext.registerTool(instrumented, { signal: controller.signal });
       return "";
     } catch (error) {
       return `${tool.name}: ${error instanceof Error ? error.message : "registration failed"}`;

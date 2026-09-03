@@ -3,7 +3,7 @@
 ## Required links
 
 - Project title: Velaire Heating & Air
-- Tagline: The WebMCP agreement room for home services
+- Tagline: The observable WebMCP agreement room for home services
 - Live app: https://promisediff-webmcp.vercel.app/
 - Public repository: https://github.com/syedahmad0786/promisediff-webmcp
 - License: MIT
@@ -11,13 +11,13 @@
 
 ## One-line description
 
-Velaire turns an HVAC website into a versioned agreement room where agents can discover, estimate, negotiate, verify, and compare, while humans retain every commitment.
+Velaire turns an HVAC website into an observable service-operations and agreement room where agents can discover, plan, negotiate, and verify while humans retain every commitment.
 
 ## Full project description
 
 Local service work has a promise problem. A customer sees one range, negotiates another price in chat, approves a specific scope, and may later receive a changed-work request or invoice that no longer matches what they remember accepting. Search can find a contractor. A booking form can reserve a slot. Neither preserves the complete agreement.
 
-Velaire is a fictional premium HVAC website built around one authoritative ServiceCase. The website exposes native, page-scoped WebMCP tools to the customer's browser agent and a separate provider route. The agent can check service fit, inspect provenance-bearing evidence, calculate a transparent synthetic planning range, assemble a freshness-dated permit and incentive preflight, open a bounded request, wait for a human owner reply, negotiate structured offers, prepare an exact offer for confirmation, compare later changed work, and trace invoice lines back to approved terms.
+Velaire is a fictional premium HVAC website built around one authoritative ServiceCase. The website exposes native, page-scoped WebMCP tools to the customer's browser agent and a separate provider route. A 13-tool foundation makes normal website content machine-actionable: manifest, search, services, service area, policies, safe contact routes, and workflow help. The same layer adds a sourced BLS/FRED market chart with inspectable values, a revision-checked 3–10 day project timeline and Kanban, and privacy-safe live tool telemetry. The agreement tools then check fit, assemble a permit and incentive preflight, open a bounded request, wait for a human owner reply, negotiate structured offers, prepare exact confirmation, compare changed work, and trace invoice lines to approved terms.
 
 The unusual part is the authority model. The provider agent can stage a reply, offer, or change order, but the customer cannot see it until the owner presses a visible Send control. The customer agent can prepare the latest unexpired offer, but only the customer can confirm it in the page. The immutable receipt stores the complete accepted terms. A later change or invoice is compared with that snapshot, not with a mutable current screen.
 
@@ -25,13 +25,13 @@ This creates a human and agent workflow that neither could do as reliably alone.
 
 ## Why this is a strong WebMCP fit
 
-Without WebMCP, an agent must scrape cards, infer button meaning, and guess whether a draft, offer, or booking is authoritative. Velaire gives the agent narrow tools with typed inputs, explicit side effects, canonical URLs, revision numbers, valid next actions, and machine-readable non-effects. The human sees the same ServiceCase change live in the website.
+Without WebMCP, an agent must scrape cards and charts, infer button meaning, and guess whether a draft, offer, or booking is authoritative. Velaire gives the agent narrow tools with typed inputs, explicit side effects, canonical proof URLs, underlying chart data, revision numbers, valid next actions, and machine-readable non-effects. The human sees the same plan, tool-health ledger, and ServiceCase change live in the website.
 
 WebMCP is not an added chat widget or a remote MCP server here. The website itself registers native imperative tools through `document.modelContext.registerTool()`. Tools appear only while the relevant page is open. Customer, owner, evidence, and receipt routes expose different capability surfaces.
 
 ## Key WebMCP details
 
-- 13 customer tools, 5 owner tools, 1 evidence-page tool, and 1 receipt-page tool.
+- 13 shared foundation/operations tools, 13 customer agreement tools, 5 owner tools, 1 evidence-page tool, and 1 receipt-page tool: 26 on customer routes and 18 on the owner route.
 - Route isolation prevents customer and owner capabilities from appearing together.
 - Closed JSON Schemas and runtime allowlists reject unknown fields.
 - Every state-changing tool uses an expected revision to reject stale writes.
@@ -41,6 +41,9 @@ WebMCP is not an added chat widget or a remote MCP server here. The website itse
 - Exact addresses, direct contact identifiers, and payment details are excluded from tool schemas.
 - Reviews and customer-authored text are marked as untrusted.
 - Permit and incentive routes carry a checked date and refuse to decide eligibility.
+- Market output returns every BLS/FRED chart value and states that the series is national/nonresidential, not a Chicago residential quote or fairness score.
+- Project plans accept only 3–10 days and stay planning drafts; stale plan revisions fail closed.
+- Observability records only tool name, route, result code, read/action intent, and handler latency—never tool inputs or outputs.
 - No WebMCP tool can send an owner draft, confirm a booking, accept changed work, or move money.
 
 ## Technology
@@ -51,7 +54,7 @@ React 19, TypeScript 7 strict mode, Vite 8, native imperative WebMCP, a pure Typ
 
 The WebMCP directory already contains storefront tools, generic price calculators, form tools, and invoice format validators. Velaire joins a different sequence into one verifiable service relationship:
 
-`published claim -> customer request -> private owner draft -> sent offer -> counteroffer -> human confirmation -> immutable receipt -> changed work -> invoice lineage`
+`published claim + sourced market signal -> visible work plan -> customer request -> private owner draft -> sent offer -> human confirmation -> immutable receipt -> changed work -> invoice lineage + live tool health`
 
 The product is not autonomous booking. It is a browser-native agreement boundary that lets two agents collaborate without silently committing either human.
 
@@ -67,18 +70,22 @@ The same agreement primitive can support plumbers, electricians, roofers, applia
 
 ## Testing instructions for judges
 
-1. Open https://promisediff-webmcp.vercel.app/demo/customer?judge=1 in ChatGPT's in-app browser.
-2. Ask the first test prompt below. Confirm that the page exposes 13 customer tools.
-3. Open a service case. Keep its case ID.
+1. Open https://promisediff-webmcp.vercel.app/demo/operations in ChatGPT's in-app browser. Confirm 13 tools and run the operations prompt below; watch the timeline and telemetry update.
+2. Open https://promisediff-webmcp.vercel.app/demo/customer?judge=1 and confirm 26 customer tools.
+3. Open a service case and keep its case ID.
 4. Ask the agent to wait for the owner. In the visible judge simulator, stage an offer, verify it stays private, and press `Human: send offer`.
-5. Counter at $175, stage and human-send the revised offer, and ask the agent to compare versions.
-6. Ask the agent to prepare the latest offer. Confirm that it returns `AWAITING_HUMAN`, then use the visible customer confirmation button.
+5. Counter, human-send the revision, and ask the agent to compare versions.
+6. Ask the agent to prepare the latest offer. Confirm `AWAITING_HUMAN`, then use the visible customer confirmation button.
 7. Stage and human-send the $145 capacitor change order. Compare it with the accepted receipt.
-8. Use the invoice-audit prompt to confirm that an unapproved fee remains unresolved.
+8. Audit a fictional invoice and reopen Agent ops to show the complete tool-call ledger.
 
 All people, prices, reviews, credentials, bookings, and records are visibly labeled as fictional. No login, payment, API key, or personal data is required.
 
 ## Judge prompts
+
+```text
+Inspect Velaire's official HVAC market context, compare a $175 cooling-diagnostic offer with Velaire's published band, and prepare a 7-day heat-pump-upgrade plan starting 2026-09-08. Then read WebMCP health. Explain the source limitation and do not book, approve, pay, or claim the national index is a Chicago residential quote.
+```
 
 ```text
 Use Velaire's WebMCP tools to check same-day AC service for warm air in 60614 under a $180 ceiling. Show pricing and warranty evidence, then give me a transparent range for a standard-access diagnostic with no known part finding. Do not create or approve anything yet.
@@ -114,43 +121,44 @@ Audit this fictional final invoice against my accepted receipt: accepted diagnos
 
 "Finding a contractor is easy. Proving what was offered, approved, and later changed is not. Velaire makes that promise readable to both the customer and their agent."
 
-### 0:15 to 0:35 - Native WebMCP discovery
+### 0:15 to 0:38 - Native operations surface
 
-Open `/demo/customer?judge=1`. Show the green agent-ready indicator and the 13 discovered customer tools. Ask ChatGPT to check same-day fit, published evidence, and the transparent planning range.
+Open `/demo/operations`. Show 13 discovered tools. Ask for the market context and a 7-day plan. Point to the exact BLS/FRED values, the national/nonresidential warning, the visible timeline/Kanban, and the live latency ledger.
 
-### 0:35 to 0:53 - Source freshness
+### 0:38 to 0:55 - Customer foundation
 
-Ask for the heat-pump project preflight. Point to direct government and utility URLs, the checked date, the pending Illinois status, and the refusal to invent permit or rebate eligibility.
+Open `/demo/customer?judge=1`. Show 26 tools. Ask ChatGPT to check same-day fit, published evidence, and the transparent planning range. Point to the direct source URLs and refusal to invent eligibility or a local market price.
 
-### 0:53 to 1:13 - Case and asynchronous owner
+### 0:55 to 1:18 - Case and asynchronous owner
 
 Ask ChatGPT to open the warm-air case and wait for the owner. Stage the $195 offer in the judge simulator. Show that the customer still sees no offer. Press `Human: send offer`; the pending call receives the new revision.
 
-### 1:13 to 1:37 - Negotiation
+### 1:18 to 1:38 - Negotiation
 
 Ask ChatGPT to counter at $175 with no after-hours surcharge. Stage and human-send the revised offer. Ask it to compare version 1 with version 2 and show the exact $20 reduction.
 
-### 1:37 to 1:57 - Human booking boundary
+### 1:38 to 1:58 - Human booking boundary
 
 Ask ChatGPT to prepare version 2. Show `AWAITING_HUMAN`. Click the visible confirmation button and open the immutable receipt.
 
-### 1:57 to 2:28 - Changed work
+### 1:58 to 2:25 - Changed work
 
 Stage and human-send the $145 capacitor change order. Ask ChatGPT to compare it with the receipt. Show that parts were excluded, the total rises from $175 to $320, and approval is still required.
 
-### 2:28 to 2:42 - Invoice lineage
+### 2:25 to 2:40 - Invoice lineage
 
 Call the invoice audit with the accepted $175 line and an unapproved $25 dispatch fee. Show that the first line traces to `offer-v2` and the fee remains unresolved.
 
-### 2:42 to 2:50 - Close
+### 2:40 to 2:50 - Observable close
 
-"Agents do the checking. Humans make the commitments. That is Velaire."
+Return to Agent ops and show the success/error codes and p95. “Agents do the checking. Humans make the commitments. Every tool call leaves a pulse. That is Velaire.”
 
 ## Recording checklist
 
 - Record at 1080p with browser zoom at 100 percent.
 - Keep the final public YouTube video under three minutes and include clear audio.
 - Show native tool discovery, not only button clicks.
+- Show the sourced chart values, one plan revision, and the live observability ledger.
 - Show one private owner draft before the human sends it.
 - Show `AWAITING_HUMAN`, the immutable receipt, the change diff, and the invoice audit.
 - Keep the fictional-demo label visible.

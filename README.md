@@ -1,6 +1,6 @@
 # Velaire Heating & Air
 
-Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room. A customer agent can discover services, inspect source cards, build transparent planning ranges, route permit and incentive questions to official sources, open a case, negotiate structured terms, prepare a booking, and audit later changes or invoices. The business can stage replies and offers. Humans retain every commitment.
+Velaire is a fictional premium HVAC service website with a WebMCP-native agreement room and service-operations board. An agent can search the site, inspect source cards and an official BLS/FRED market signal, prepare a 3–10 day project plan, open and negotiate a service case, and audit later changes or invoices. The business can stage replies and offers. Humans retain every commitment. A privacy-safe dashboard shows every browser-local tool result and handler latency live.
 
 The synthetic HVAC demo tells one complete story:
 
@@ -18,8 +18,9 @@ There is no separate WebMCP account or connector to assign. The open page regist
 
 The website itself exposes typed capabilities through the browser's imperative `document.modelContext.registerTool()` API. There is no separate MCP server, extension, screen scraping layer, or AgentLane runtime dependency.
 
-- `/` and `/demo/customer` expose the same 13 customer tools.
-- `/demo/owner` exposes 5 owner tools.
+- `/` and `/demo/customer` expose 13 foundation/operations tools plus 13 customer agreement tools: 26 total.
+- `/demo/owner` exposes the same 13 foundation/operations tools plus 5 owner tools: 18 total.
+- `/demo/operations` exposes the 13 foundation/operations tools beside the sourced chart, timeline, Kanban, and telemetry views.
 - `/evidence/:sourceId` exposes one canonical evidence lookup.
 - `/receipt/:receiptId` exposes one immutable receipt lookup.
 
@@ -35,6 +36,8 @@ flowchart LR
     OH[Business owner] -->|Send staged content| OR
     CR --> CG[Shared command gateway]
     OR --> CG
+    OP[Market + project + telemetry board] --> OG[Operations store]
+    CA -->|Foundation/operations tools| OP
     CG --> VG[Validation + safety + revision gates]
     VG --> SM[Pure TypeScript state machine]
     SM --> LS[(localStorage)]
@@ -61,7 +64,25 @@ stateDiagram-v2
 
 ## WebMCP tools
 
-### Customer route
+### Shared foundation and operations surface
+
+| Tool | Effect |
+|---|---|
+| `velaire_get_site_manifest` | Reads identity, routes, service area, capability groups, and boundaries. |
+| `velaire_search_site` | Searches services, policies, and help; returns canonical URLs. |
+| `velaire_list_services` | Lists every service, synthetic band, prerequisite, and evidence URL. |
+| `velaire_get_service_details` | Reads one complete service definition. |
+| `velaire_check_service_area` | Checks a postcode without collecting an exact address. |
+| `velaire_get_policies` | Reads freshness-labeled pricing, availability, cancellation, and warranty cards. |
+| `velaire_get_contact_options` | Returns safe service, owner-demo, and emergency routes. |
+| `velaire_get_agent_help` | Returns task-specific tool order and the human authority boundary. |
+| `velaire_get_market_price_context` | Reads 3–8 months of underlying BLS/FRED index values and source URLs. |
+| `velaire_compare_quote_context` | Separates a fictional Velaire band check from the national cost signal. |
+| `velaire_prepare_project_plan` | Prepares a visible, revision-checked 3–10 day planning draft. |
+| `velaire_get_project_plan` | Reads the timeline, dependencies, proof requirements, and Kanban data. |
+| `velaire_get_webmcp_health` | Reads browser-local result codes, success rate, read/action split, average, p95, and recent calls. |
+
+### Customer agreement surface
 
 | Tool | Effect |
 |---|---|
@@ -106,6 +127,9 @@ There is intentionally no agent tool for sending an owner draft, confirming a bo
 - **Official-source freshness:** permit and incentive output states when each route was checked and refuses to decide eligibility.
 - **Invoice lineage:** a charge is not treated as authorized unless it traces to the accepted offer or a human-approved change order.
 - **Audit:** success and failure codes record their before/after revision effect.
+- **Market truth:** the BLS/FRED series is dated and explicitly labeled national/nonresidential, never a Chicago residential quote or fairness score.
+- **Project plan:** plans are browser-local drafts bounded to 3–10 days and never promise dates, crews, equipment, or inspections.
+- **Observability privacy:** telemetry stores tool name, route, code, intent, and handler time only; it never logs inputs or outputs.
 
 ## Local development
 
@@ -128,11 +152,11 @@ Chrome's WebMCP implementation must be enabled for native discovery. Every page 
 
 ## Demo path
 
-1. Open `/demo/customer?judge=1` and create the pre-filled warm-air request.
-2. In the judge simulator, stage a `$195` offer. Notice that the customer timeline does not change.
-3. Press **Human: send offer**. The sent offer becomes revision 2.
-4. Send the pre-filled `$175` counteroffer.
-5. Stage and human-send the revised `$175` offer.
+1. Open `/demo/operations`; ask the agent to inspect the sourced chart, prepare a 7-day plan, and read live WebMCP health.
+2. Open `/demo/customer?judge=1` and create the pre-filled warm-air request.
+3. In the judge simulator, stage a `$195` offer. Notice that the customer timeline does not change.
+4. Press **Human: send offer**. The sent offer becomes revision 2.
+5. Send the pre-filled `$175` counteroffer and human-send the revised offer.
 6. Prepare the latest version. Then use the separate human confirmation gate.
 7. Stage and human-send the `+$145` capacitor change order.
 8. Review the deterministic comparison against the immutable accepted snapshot.
@@ -160,5 +184,7 @@ This judged build uses synthetic fixtures and browser-local persistence. It does
 - [Illinois EPA home energy rebate updates](https://epa.illinois.gov/topics/energy/energy-rebates.html)
 - [ComEd incentives and financing](https://goelectric.comed.com/incentives-and-financing/)
 - [ENERGY STAR federal tax credit status](https://www.energystar.gov/about/federal-tax-credits)
+- [BLS producer-price methodology for plumbing and HVAC contractors](https://www.bls.gov/ppi/factsheets/producer-price-index-data-for-nonresidential-building-construction-sector-contractors-naics-238.htm)
+- [FRED series PCU23822X23822X](https://fred.stlouisfed.org/series/PCU23822X23822X)
 
 MIT licensed. All businesses, people, reviews, credentials, prices, bookings, and records in the demo are fictional.

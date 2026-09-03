@@ -2,22 +2,43 @@
 
 Test date: 2026-09-03  
 Canonical URL: https://promisediff-webmcp.vercel.app/  
-Final verified deployment: `dpl_2DjKbpCfD4Nn5i14Pm9KxGPGLFN7`  
+Final verified deployment: `dpl_6kt4CB3WwSyx4PsZ5Lq7uRNT576G`
 Client: ChatGPT desktop in-app browser with native page-scoped WebMCP discovery
 
 ## Result
 
-Pass. The complete synthetic customer-owner journey ran through native WebMCP calls and visible human controls. The final deployment exposes 13 customer tools on `/` and `/demo/customer`, 5 owner tools on `/demo/owner`, 1 evidence lookup tool, and 1 receipt lookup tool. No unresolved console, build, route-isolation, state-integrity, or dependency-audit error remains.
+Pass. The complete synthetic customer-owner journey ran through native WebMCP calls and visible human controls. The final deployment exposes 26 customer tools on `/` and `/demo/customer`, 18 owner tools on `/demo/owner`, 13 foundation/operations tools on `/demo/operations`, 1 evidence lookup tool, and 1 receipt lookup tool. No unresolved browser-console, build, route-isolation, state-integrity, or dependency-audit error remains.
 
 The browser-local test artifacts were:
 
-- Service case `SC-B2DAA9A4`, revision 8.
-- Receipt `RCPT-DD1E066C` for accepted offer V2.
-- Pending change order `CO-1C0DAE07`.
+- Service case `SC-99347A6B`, revision 5.
+- Receipt `RCPT-33892F5B` for accepted offer V1.
+- Pending change order `CO-5BD530EA`.
+- Project plan revision 2, 10-day equipment-replacement draft.
 
 These records are intentionally synthetic and exist only in the test browser's local storage.
 
 ## Production calls
+
+### Foundation and operations surface
+
+| Tool | Production exercise | Result |
+|---|---|---|
+| `velaire_get_site_manifest` | Read identity, routes, capability groups, and boundaries | `OK`; all canonical URLs resolved to the production origin. |
+| `velaire_search_site` | Search `change approval` within policies | `OK`; returned canonical policy evidence without wider-web claims. |
+| `velaire_list_services` | List the full service catalog | `OK`; returned all three services and synthetic price labels. |
+| `velaire_get_service_details` | Read `ac-diagnostic` | `OK`; returned the complete service definition and source URL. |
+| `velaire_check_service_area` | Check `60614` | `OK`; returned `served` without collecting an address. |
+| `velaire_get_policies` | Read warranty policy | `OK`; returned freshness and synthetic status. |
+| `velaire_get_contact_options` | Read request, owner-demo, and emergency paths | `OK`; no real contact identifier exposed. |
+| `velaire_get_agent_help` | Read the project workflow | `OK`; returned ordered tools and the human boundary. |
+| `velaire_get_market_price_context` | Read last 3 BLS/FRED observations | `OK`; returned exact values, +2.72%, two source URLs, and the national/nonresidential limitation. |
+| `velaire_get_market_price_context` | Request 2 months | `INVALID_STATE`; stated the 3–8 month bound and changed nothing. |
+| `velaire_compare_quote_context` | Compare $175 diagnostic to Velaire's $89–$169 band | `OK`; reported $6 above the fictional band and refused to use the national index as a local fairness score. |
+| `velaire_prepare_project_plan` | Prepare 10-day equipment-replacement plan at revision 1 | `OK`; visible plan became revision 2, with no appointment or crew commitment. |
+| `velaire_prepare_project_plan` | Repeat with stale revision 1 | `STALE_REVISION`; revision stayed 2. |
+| `velaire_get_project_plan` | Read timeline and Kanban source data | `OK`; returned dates, dependencies, owners, proof requirements, and canonical board URL. |
+| `velaire_get_webmcp_health` | Read metrics after seven mixed calls | `OK`; reported 7 calls, 71.4% success, 5 reads/2 actions, 1 ms average, and 4.3 ms p95 before the health call itself was appended. |
 
 ### Customer surface
 
@@ -32,13 +53,13 @@ These records are intentionally synthetic and exist only in the test browser's l
 | `velaire_open_service_case` | Bounded HVAC request without contact, address, or payment data | `AWAITING_OWNER`; created revision 1 and no booking. |
 | `velaire_get_service_case` | Read the authoritative case after owner and customer events | `OK`; private owner drafts were absent from customer output. |
 | `velaire_wait_for_owner_reply` | Owner sent a visible reply within the wait window | `OK`; the pending call resolved on the newer owner event. |
-| `velaire_wait_for_owner_reply` | No event after revision 8 for one second | `WAIT_EXPIRED`; revision stayed 8 and the case remained recoverable. |
+| `velaire_wait_for_owner_reply` | No event after revision 5 for one second | `WAIT_EXPIRED`; revision stayed 5 and the case remained recoverable. |
 | `velaire_submit_case_message` | Stale revision, then current revision counteroffer | `STALE_REVISION` with no mutation, followed by `OK` for the valid counter. |
 | `velaire_compare_offer_versions` | Offer V1 at $195 versus V2 at $175 | `OK`; reported the $20 decrease and term-level differences. |
 | `velaire_prepare_booking` | Superseded V1, then current V2 | V1 rejected; V2 returned `AWAITING_HUMAN`. The visible customer control created the receipt. |
-| `velaire_get_booking_receipt` | Read confirmed V2 | `OK`; returned the complete immutable $175 snapshot and $49 deposit term. |
-| `velaire_compare_change_order` | Compare +$145 capacitor proposal with the accepted receipt | `OK`; returned proposed total $320, the excluded-parts signal, and required customer decision. |
-| `velaire_audit_invoice_against_receipt` | Accepted $175 line plus unapproved $25 dispatch fee | `OK`; invoice total $200, authorized total $175, $25 delta, line 2 unresolved, traceability false. |
+| `velaire_get_booking_receipt` | Read confirmed V1 | `OK`; returned the complete immutable $195 snapshot and $49 deposit term. |
+| `velaire_compare_change_order` | Compare +$145 capacitor proposal with the accepted receipt | `OK`; returned proposed total $340, the excluded-parts signal, and required customer decision. |
+| `velaire_audit_invoice_against_receipt` | Accepted $195 line plus pending $145 changed work | `OK`; line 2 remained unresolved because the customer had not approved it. |
 
 ### Owner and canonical-document surfaces
 
@@ -50,7 +71,7 @@ These records are intentionally synthetic and exist only in the test browser's l
 | `velaire_stage_service_offer` | Stage initial and revised offers | `AWAITING_HUMAN`; each offer became public only after visible owner Send. |
 | `velaire_stage_change_order` | Stage +$145 changed work | `AWAITING_HUMAN`; the visible owner Send action created the pending proposal. |
 | `velaire_get_evidence_source` | `/evidence/pricing` | `OK`; this route discovered only its one lookup tool. |
-| `velaire_get_receipt_snapshot` | `/receipt/RCPT-DD1E066C` | `OK`; this route discovered only its one immutable-receipt tool. |
+| `velaire_get_receipt_snapshot` | `/receipt/RCPT-33892F5B` | `OK`; this route discovered only its one immutable-receipt tool. |
 
 No agent-callable tool exists for sending an owner draft, confirming a booking, accepting changed work, moving money, or resetting state.
 
@@ -62,17 +83,22 @@ No agent-callable tool exists for sending an owner draft, confirming a booking, 
 | The first discovery immediately after one deployment reload briefly exposed 10 of 13 tools. | Registration awaited each tool serially, allowing a discovery request between registrations. | Route registrations now start together with `Promise.all`, while errors remain associated with their tool names. | A delayed-registration regression test proves all 13 calls start before any promise resolves; the first production fetch after reload returned all 13. |
 | Test harness sent `heat_pump_installation`. | The published enum is `heat_pump_upgrade`. | No application change; strict rejection was correct. | Corrected production call returned `OK` with four official-source records. |
 | Test harness sent `caseId` and `reference` to invoice audit. | The contract intentionally anchors to immutable `receiptId` and names the nested field `authorizationRef`. | No application change; strict rejection was correct. | Corrected production call returned the expected $25 unexplained delta. |
+| A market-context request asked for 2 months. | The chart contract requires enough observations to communicate a trend. | No application change; the runtime 3–8 month guard was correct. | Production returned `INVALID_STATE`; the observability ledger recorded the failed handler call. |
+| A second project-plan writer used revision 1 after revision 2 existed. | The visible planning draft had changed. | No application change; optimistic concurrency was correct. | Production returned `STALE_REVISION` and preserved revision 2. |
 
 ## Build, browser, and security checks
 
 | Check | Result |
 |---|---|
-| `npm test` | Pass: 1 file, 6 tests. |
+| `npm test` | Pass: 1 file, 7 tests. |
 | `npm run typecheck` | Pass. |
 | `npm run build` | Pass: production Vite bundle generated. |
 | `npm audit --audit-level=high` | Pass: 0 vulnerabilities. |
-| Customer discovery immediately after reload | Pass: exactly 13 tools. |
-| Owner discovery | Pass: exactly 5 tools and no customer booking tool. |
+| Customer discovery immediately after reload | Pass: exactly 26 tools. |
+| Owner discovery | Pass: exactly 18 tools and no customer booking tool. |
+| Operations discovery | Pass: exactly 13 tools. |
+| Live operations dashboard | Pass: successful, invalid-input, and stale-revision calls appeared without recording inputs or outputs. |
+| Responsive layout | Pass: desktop and 390×844 mobile browser checks. |
 | Evidence and receipt discovery | Pass: exactly 1 read-only lookup tool each. |
 | Cross-tab synchronization | Pass: owner human commits were visible to the customer tool surface. |
 | Refresh persistence | Pass: revision 8 and its receipt/change order survived navigation and refresh. |

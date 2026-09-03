@@ -1,17 +1,26 @@
 # Velaire Heating & Air
 
-> Velaire is a fictional, WebMCP-native Chicago HVAC service demonstration. Agents can check fit, inspect evidence, open and follow service cases, negotiate, prepare bookings, and compare changed work. Only visible human controls can send or approve commitments.
+> Velaire is a fictional, WebMCP-native Chicago HVAC service demonstration. Agents can search the site, inspect sourced market context, prepare a project plan, check fit, negotiate, and compare changed work while visible human controls retain commitments. Browser-local tool health is observable without logging inputs or outputs.
 
 When this page is open in a supporting agent browser, it automatically registers the tools for that page. The user does not install, connect, or assign a separate WebMCP chatbot; they ask their existing browser agent in the same chat.
 
 ## Primary routes
 
-- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 13 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
-- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 13 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
-- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 5 owner WebMCP tools that can read cases and stage private replies, offers, or change orders. Sending remains a human action.
+- [HVAC service website](https://promisediff-webmcp.vercel.app/): Registers 26 customer WebMCP tools and presents services, price bands, service area, evidence, and the human-approval policy.
+- [Customer service room](https://promisediff-webmcp.vercel.app/demo/customer?judge=1): Registers the same 26 customer tools beside the visible request, negotiation, booking, receipt, and change-order interface.
+- [Owner desk](https://promisediff-webmcp.vercel.app/demo/owner): Registers 18 tools: 13 shared foundation/operations tools and 5 private-draft owner tools. Sending remains a human action.
+- [Agent operations](https://promisediff-webmcp.vercel.app/demo/operations): Registers 13 foundation/operations tools beside the BLS/FRED chart, 3–10 day timeline/Kanban, and live call-health ledger.
 - [Public source](https://github.com/syedahmad0786/promisediff-webmcp): Implementation, architecture, tests, and demonstration instructions.
 
-## Customer tools
+## Shared foundation and operations tools
+
+- `velaire_get_site_manifest`, `velaire_search_site`, `velaire_list_services`, and `velaire_get_service_details`: Discover canonical website and service information.
+- `velaire_check_service_area`, `velaire_get_policies`, `velaire_get_contact_options`, and `velaire_get_agent_help`: Resolve normal website intents with explicit safety and authority boundaries.
+- `velaire_get_market_price_context` and `velaire_compare_quote_context`: Return exact BLS/FRED chart values while separating a national nonresidential index from fictional local price bands.
+- `velaire_prepare_project_plan` and `velaire_get_project_plan`: Prepare/read a revision-checked 3–10 day planning draft; never promise dates, crews, equipment, or inspections.
+- `velaire_get_webmcp_health`: Read privacy-safe browser-local tool result codes and handler latency.
+
+## Customer agreement tools
 
 - `velaire_check_service_fit`: Read-only service, postcode, urgency, budget, prerequisite, price-band, and emergency-fit check.
 - `velaire_get_business_evidence`: Read-only canonical pricing, credentials, availability, cancellation, warranty, and synthetic-review cards.

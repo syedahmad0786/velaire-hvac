@@ -12,6 +12,7 @@ import {
 } from "./domain";
 import { PromiseDiffStore } from "./store";
 import { installWebMCP, waitForOwnerReply } from "./webmcp";
+import { compareQuoteContext, createProjectPlan, getMarketContext, searchSite, summarizeMetrics } from "./operations";
 
 const context: RuntimeContext = (() => {
   let id = 0;
@@ -41,6 +42,19 @@ function openCase(store: PromiseDiffStore) {
 }
 
 describe("Velaire agreement boundary", () => {
+  it("keeps market context sourced and project plans bounded", () => {
+    const market = getMarketContext(3);
+    expect(market.observations).toHaveLength(3);
+    expect(market.seriesId).toBe("PCU23822X23822X");
+    expect(market.limitation).toContain("not a Chicago residential quote");
+    expect(compareQuoteContext("ac-diagnostic", 17500)?.position).toBe("above_published_velaire_band");
+    expect(searchSite("change approval", "policies").length).toBeGreaterThan(0);
+    const plan = createProjectPlan({ projectType: "heat_pump_upgrade", startDate: "2026-09-08", durationDays: 7 });
+    expect(plan.tasks.at(-1)?.endDay).toBe(7);
+    expect(() => createProjectPlan({ projectType: "repair", startDate: "2026-09-08", durationDays: 2 })).toThrow("3 to 10");
+    expect(summarizeMetrics([]).successRate).toBe(100);
+  });
+
   it("stops ordinary booking for HVAC emergency language", () => {
     const store = new PromiseDiffStore(initialState());
     const result = send(store, {
@@ -171,7 +185,11 @@ describe("Velaire agreement boundary", () => {
     vi.stubGlobal("window", fakeWindow);
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
-    expect(customer.registered).toHaveLength(13);
+    expect(customer.registered).toHaveLength(26);
+    expect(customer.registered).toContain("velaire_get_site_manifest");
+    expect(customer.registered).toContain("velaire_get_market_price_context");
+    expect(customer.registered).toContain("velaire_prepare_project_plan");
+    expect(customer.registered).toContain("velaire_get_webmcp_health");
     expect(customer.registered).toContain("velaire_compare_change_order");
     expect(customer.registered).toContain("velaire_audit_invoice_against_receipt");
     const customerRead = await registrations.find((tool) => tool.name === "velaire_get_service_case")!.execute(
@@ -184,10 +202,19 @@ describe("Velaire agreement boundary", () => {
     ) as { code: string; effect: string };
     expect(unexpected.code).toBe("INVALID_STATE");
     expect(unexpected.effect).toContain("Unknown input property");
+    const market = await registrations.find((tool) => tool.name === "velaire_get_market_price_context")!.execute(
+      { months: 3 }, { signal: new AbortController().signal },
+    ) as { code: string; data: { observations: unknown[] } };
+    expect(market.code).toBe("OK");
+    expect(market.data.observations).toHaveLength(3);
+    const invalidMarket = await registrations.find((tool) => tool.name === "velaire_get_market_price_context")!.execute(
+      { months: 2 }, { signal: new AbortController().signal },
+    ) as { code: string };
+    expect(invalidMarket.code).toBe("INVALID_STATE");
     customer.dispose();
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
-    expect(owner.registered).toHaveLength(5);
+    expect(owner.registered).toHaveLength(18);
     expect(owner.registered).not.toContain("velaire_prepare_booking");
     const ownerRead = await registrations.find((tool) => tool.name === "velaire_get_owner_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
@@ -212,9 +239,9 @@ describe("Velaire agreement boundary", () => {
       },
     });
     const pending = installWebMCP(new PromiseDiffStore(initialState()), "customer");
-    expect(registrations).toHaveLength(13);
+    expect(registrations).toHaveLength(26);
     releases.forEach((release) => release());
-    expect((await pending).registered).toHaveLength(13);
+    expect((await pending).registered).toHaveLength(26);
     vi.unstubAllGlobals();
   });
 });

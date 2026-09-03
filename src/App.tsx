@@ -10,15 +10,27 @@ import {
 } from "./domain";
 import { promiseDiffStore } from "./store";
 import { installWebMCP, type ToolRoute, type WebMCPStatus } from "./webmcp";
+import {
+  getMarketContext,
+  operationsStore,
+  summarizeMetrics,
+  type PlanTaskStatus,
+  type PlanType,
+} from "./operations";
 
 function usePromiseDiffState() {
   return useSyncExternalStore(promiseDiffStore.subscribe, promiseDiffStore.getSnapshot, promiseDiffStore.getSnapshot);
+}
+
+function useOperationsState() {
+  return useSyncExternalStore(operationsStore.subscribe, operationsStore.getSnapshot, operationsStore.getSnapshot);
 }
 
 function routeKind(pathname: string): ToolRoute {
   if (pathname === "/") return "customer";
   if (pathname === "/demo/customer") return "customer";
   if (pathname === "/demo/owner") return "owner";
+  if (pathname === "/demo/operations") return "operations";
   if (pathname.startsWith("/evidence/")) return "evidence";
   if (pathname.startsWith("/receipt/")) return "receipt";
   return "none";
@@ -65,6 +77,7 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
         <a href="/#services">Services</a>
         <a href="/#agent-access">Use with ChatGPT</a>
         <a href="/demo/customer?judge=1">Service room</a>
+        <a href="/demo/operations">Agent ops</a>
         <a href="/demo/owner">Owner portal</a>
       </nav>
       <a className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} href="/#agent-access" title={status?.errors.join("\n") || undefined}>
@@ -191,9 +204,14 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
       <EvidenceCards />
     </section>
 
+    <section className="operations-preview">
+      <div><p className="eyebrow light">Evidence becomes operations</p><h2>From price signal<br />to proof of work.</h2><p>Agents can inspect the values behind a sourced market chart, prepare a 3–10 day delivery plan, and expose every tool result and handler latency on one visible board.</p><a className="button copper" href="/demo/operations">Open agent operations <span aria-hidden="true">→</span></a></div>
+      <div className="operations-preview-visual" aria-hidden="true"><span>HVAC CONTRACTOR INDEX · BLS/FRED</span><svg viewBox="0 0 440 170"><path d="M8 131 L67 88 L126 86 L185 85 L244 127 L303 105 L362 96 L432 24" /><line x1="8" y1="145" x2="432" y2="145" /><line x1="8" y1="15" x2="8" y2="145" /></svg><div><b>180.452</b><i>DEC 2025</i><strong>+3.64%</strong><i>JUL 2026</i><b>187.025</b></div></div>
+    </section>
+
     <section className="agent-native-section">
       <div><p className="eyebrow light">What WebMCP does</p><h2>Your AI chat can use this website—not just read it.</h2><p>Keep Velaire open in ChatGPT and describe what you need. Your agent can check fit, build a transparent planning range, route permit and incentive questions to freshness-dated official sources, negotiate exact terms, and audit a later invoice against the promise you approved.</p><a className="button copper" href="#agent-access">See how to ask <span aria-hidden="true">↑</span></a></div>
-      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>13</strong><span>Customer tools</span></div><div><strong>5</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Your ChatGPT chat <i>→</i> Velaire tools <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
+      <div className="tool-proof" aria-label="WebMCP authority model"><div><strong>26</strong><span>Customer tools</span></div><div><strong>18</strong><span>Owner tools</span></div><div><strong>0</strong><span>Agent approval tools</span></div><p>Foundation + HVAC intelligence <i>→</i> visible service case <i>→</i> <b>your approval</b></p></div>
     </section>
 
     <section className="closing-cta"><SyntheticFlag /><p className="eyebrow">A complete WebMCP service journey</p><h2>Warm air today?<br />Ask. Compare. Approve.</h2><a className="button primary" href="#agent-access">Use Velaire with ChatGPT <span aria-hidden="true">↑</span></a><small>No payment, real booking, or personal contact details are collected in this demonstration.</small></section>
@@ -208,6 +226,78 @@ function EvidenceCards({ compact = false }: { compact?: boolean }) {
       <span aria-hidden="true">↗</span>
     </a>)}
   </div>;
+}
+
+function MarketPanel({ compact = false }: { compact?: boolean }) {
+  const market = getMarketContext();
+  const values = market.observations.map((item) => item.value);
+  const min = Math.min(...values) - 1;
+  const max = Math.max(...values) + 1;
+  const points = market.observations.map((item, index) => {
+    const x = 42 + (index / (market.observations.length - 1)) * 676;
+    const y = 225 - ((item.value - min) / (max - min)) * 175;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return <section id="market" className={`market-panel ${compact ? "compact" : ""}`}>
+    <header><div><p className="eyebrow">Official national cost signal</p><h2>{compact ? "Context behind the price" : "A market signal your agent can inspect."}</h2></div><div className="market-delta"><span>{market.observations[0].month} → {market.observations.at(-1)!.month}</span><strong>+{market.changePercent}%</strong></div></header>
+    {!compact && <div className="market-chart-wrap"><svg className="market-chart" viewBox="0 0 760 270" role="img" aria-labelledby="market-chart-title market-chart-desc"><title id="market-chart-title">BLS producer price index for plumbing and HVAC contractors</title><desc id="market-chart-desc">The national nonresidential contractor index rises from {market.observations[0].value} in {market.observations[0].month} to {market.observations.at(-1)!.value} in {market.observations.at(-1)!.month}, with a dip in April 2026.</desc><line x1="42" y1="225" x2="718" y2="225" /><line x1="42" y1="40" x2="42" y2="225" /><line className="grid-line" x1="42" y1="132" x2="718" y2="132" /><polyline points={points} />{market.observations.map((item, index) => { const [x, y] = points.split(" ")[index].split(","); return <g key={item.month}><circle cx={x} cy={y} r="5" /><text x={x} y="250" textAnchor="middle">{item.month.slice(5)}</text></g>; })}</svg><div className="chart-values" aria-label="Underlying market chart values">{market.observations.map((item) => <span key={item.month}><b>{item.month}</b><strong>{item.value.toFixed(3)}</strong></span>)}</div></div>}
+    <div className="market-source"><div><span>SERIES</span><b>{market.seriesId}</b></div><div><span>SCOPE</span><b>U.S. · nonresidential · contractor output</b></div><div><span>SOURCE UPDATED</span><b>{market.sourceUpdatedAt}</b></div></div>
+    <p className="market-warning"><strong>Do not read this as a quote.</strong> {market.limitation}</p>
+    <div className="source-links"><a href={market.sourceUrl} target="_blank" rel="noreferrer">Open FRED series ↗</a><a href={market.methodologyUrl} target="_blank" rel="noreferrer">Read BLS methodology ↗</a>{compact && <a href="/demo/operations#market">Inspect chart values →</a>}</div>
+  </section>;
+}
+
+const PLAN_COLUMNS: Array<{ status: PlanTaskStatus; label: string }> = [
+  { status: "planned", label: "Planned" }, { status: "ready", label: "Ready" },
+  { status: "in_progress", label: "In progress" }, { status: "done", label: "Proof complete" },
+];
+
+function ProjectPlanner() {
+  const { plan } = useOperationsState();
+  const [message, setMessage] = useState("Planning draft only · no dates are promised");
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    try {
+      const result = operationsStore.preparePlan({
+        projectType: String(data.get("projectType")) as PlanType,
+        startDate: String(data.get("startDate")),
+        durationDays: Number(data.get("durationDays")),
+        expectedRevision: plan.revision,
+      });
+      setMessage(result.ok ? `Plan revision ${result.plan.revision} is now visible to people and agents.` : result.error ?? "Plan changed; refresh and retry.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Plan input was invalid."); }
+  };
+  const grid = { gridTemplateColumns: `minmax(150px, 1.5fr) repeat(${plan.durationDays}, minmax(44px, 1fr))` };
+  return <section id="project" className="project-board">
+    <header><div><p className="eyebrow light">Inspectable delivery plan</p><h2>Plan the work.<br />Keep the promise separate.</h2></div><form key={plan.revision} onSubmit={submit}><label>Project<select name="projectType" defaultValue={plan.projectType}><option value="diagnostic">Diagnostic</option><option value="repair">Repair</option><option value="equipment_replacement">Equipment replacement</option><option value="heat_pump_upgrade">Heat-pump upgrade</option></select></label><label>Start<input name="startDate" type="date" defaultValue={plan.startDate} required /></label><label>Days<input name="durationDays" type="number" min={3} max={10} defaultValue={plan.durationDays} required /></label><button className="button copper" type="submit">Prepare plan</button></form></header>
+    <div className="plan-meta"><span><b>{plan.id}</b> · revision {plan.revision}</span><span role="status">{message}</span></div>
+    <div className="plan-timeline" aria-label={`${plan.durationDays}-day project timeline`}><div className="timeline-grid timeline-head" style={grid}><b>Workstream</b>{Array.from({ length: plan.durationDays }, (_, index) => <span key={index}>D{index + 1}</span>)}</div>{plan.tasks.map((task) => <div className="timeline-grid timeline-task" style={grid} key={task.id}><b><span>{task.owner}</span>{task.title}</b><i className={`task-bar ${task.status}`} style={{ gridColumn: `${task.startDay + 1} / ${task.endDay + 2}` }}>{task.proof}</i></div>)}</div>
+    <div className="kanban" aria-label="Project task board">{PLAN_COLUMNS.map((column) => <section key={column.status}><header><b>{column.label}</b><span>{plan.tasks.filter((task) => task.status === column.status).length}</span></header>{plan.tasks.filter((task) => task.status === column.status).map((task) => <article key={task.id}><small>D{task.startDay}{task.endDay !== task.startDay ? `–D${task.endDay}` : ""} · {task.owner}</small><strong>{task.title}</strong><p>{task.proof}</p>{task.dependsOn.length > 0 && <em>After {task.dependsOn.join(", ")}</em>}</article>)}</section>)}</div>
+    <p className="project-disclaimer">{plan.disclaimer}</p>
+  </section>;
+}
+
+function ObservabilityPanel() {
+  const { metrics } = useOperationsState();
+  const summary = summarizeMetrics(metrics);
+  return <section id="observability" className="observability-panel">
+    <header><div><p className="eyebrow">WebMCP observability</p><h2>Every tool call leaves a pulse.</h2><p>Browser-local telemetry records tool name, route, result code, and handler time. Inputs and outputs are never logged.</p></div><button className="button quiet" type="button" onClick={() => operationsStore.clearMetrics()}>Clear local metrics</button></header>
+    <div className="metric-grid"><article><span>Calls</span><strong>{summary.totalCalls}</strong><small>last 200</small></article><article><span>Success</span><strong>{summary.successRate}%</strong><small>{summary.successfulCalls}/{summary.totalCalls || 0} returned ok</small></article><article><span>Average</span><strong>{summary.averageLatencyMs}<i>ms</i></strong><small>handler only</small></article><article><span>P95</span><strong>{summary.p95LatencyMs}<i>ms</i></strong><small>browser-local</small></article><article><span>Read / action</span><strong>{summary.readCalls}<i>/</i>{summary.actionCalls}</strong><small>declared intent</small></article></div>
+    <div className="call-ledger"><div className="call-ledger-head"><b>Recent call</b><b>Route</b><b>Result</b><b>Latency</b><b>Time</b></div>{summary.latestCalls.length ? summary.latestCalls.map((call) => <div className="call-row" key={call.id}><code>{call.toolName}</code><span>{call.route}</span><b className={call.ok ? "call-ok" : "call-error"}>{call.code}</b><span>{call.durationMs.toFixed(2)} ms</span><time dateTime={call.startedAt}>{new Date(call.startedAt).toLocaleTimeString()}</time></div>) : <p>Call a Velaire WebMCP tool in this ChatGPT chat; its result will appear here live.</p>}</div>
+    <small className="metrics-scope">{summary.scope}</small>
+  </section>;
+}
+
+function OperationsPage({ status }: { status: WebMCPStatus | null }) {
+  const [copyLabel, setCopyLabel] = useState("Copy agent task");
+  const prompt = "Use Velaire's WebMCP tools to inspect the official HVAC market context, compare a $175 cooling-diagnostic offer with Velaire's published band, and prepare a 7-day heat-pump-upgrade plan starting 2026-09-08. Then read WebMCP health. Explain the source limitation and do not book, approve, pay, or claim the national index is a Chicago residential quote.";
+  return <main className="operations-page">
+    <div className="operations-hero"><div><p className="eyebrow light">Velaire agent operations · synthetic demo</p><h1>The service plan<br />has receipts, too.</h1><p>One shared surface for sourced market context, inspectable project delivery, and live WebMCP health.</p></div><aside><span className={status?.supported ? "live-orb" : "standby-orb"} /><b>{status?.supported ? `${status.registered.length} WebMCP tools are ready` : "Open in ChatGPT to connect WebMCP"}</b><label htmlFor="operations-prompt">Ask in this ChatGPT chat</label><textarea id="operations-prompt" value={prompt} readOnly rows={6} onFocus={(event) => event.currentTarget.select()} /><button className="button copper" onClick={async () => { try { await navigator.clipboard.writeText(prompt); setCopyLabel("Copied"); } catch { setCopyLabel("Select and copy"); } }}>{copyLabel}</button><small>Agent can inspect and prepare. It cannot approve or commit work.</small></aside></div>
+    <MarketPanel />
+    <ProjectPlanner />
+    <ObservabilityPanel />
+  </main>;
 }
 
 function RequestForm() {
@@ -293,6 +383,7 @@ function OfferCard({ offer, latest }: { offer: ServiceOffer; latest: boolean }) 
     <header><div><span>OFFER VERSION</span><strong>V{offer.version}</strong></div>{latest && <em>LATEST SENT</em>}<b>{money(offer.totalCents)}</b></header>
     <dl><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Expires</dt><dd>{shortTime(offer.expiresAt)}</dd></div></dl>
     <div className="scope-grid"><div><span>Included</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Excluded</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>
+    <a className="offer-context-link" href="/demo/operations#market">Inspect sourced price context + delivery plan →</a>
   </article>;
 }
 
@@ -444,7 +535,7 @@ function ReceiptPage({ receiptId }: { receiptId: string }) {
   const receipt = serviceCase?.receipt;
   if (!serviceCase || !receipt) return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><div className="empty-state"><span>RECEIPT NOT FOUND</span><h2>This simulated receipt only exists in the browser where it was confirmed.</h2></div></main>;
   const offer = receipt.acceptedOffer;
-  return <main className="document-page"><a className="back-link" href={`/demo/customer?case=${serviceCase.id}&judge=1`}>← Return to case</a><article className="receipt-document"><header><div><p className="eyebrow">Accepted promise snapshot</p><h1>{receipt.id}</h1><p>Confirmed {new Date(receipt.confirmedAt).toLocaleString()}</p></div><SyntheticFlag /></header><div className="receipt-total"><span>Accepted total</span><strong>{money(offer.totalCents)}</strong></div><dl><div><dt>Case</dt><dd>{receipt.caseId}</dd></div><div><dt>Offer version</dt><dd>V{offer.version}</dd></div><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Simulation</dt><dd>No payment or real appointment</dd></div></dl><div className="scope-grid"><div><span>Accepted scope</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Accepted exclusions</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>{receipt.decisions.length > 0 && <div className="receipt-decisions"><h2>Later decisions</h2>{receipt.decisions.map((decision) => <p key={decision.changeOrderId}><b>{decision.changeOrderId}</b><StatusPill status={decision.decision} /><span>{new Date(decision.decidedAt).toLocaleString()}</span></p>)}</div>}</article></main>;
+  return <main className="document-page"><a className="back-link" href={`/demo/customer?case=${serviceCase.id}&judge=1`}>← Return to case</a><article className="receipt-document"><header><div><p className="eyebrow">Accepted promise snapshot</p><h1>{receipt.id}</h1><p>Confirmed {new Date(receipt.confirmedAt).toLocaleString()}</p></div><SyntheticFlag /></header><div className="receipt-total"><span>Accepted total</span><strong>{money(offer.totalCents)}</strong></div><dl><div><dt>Case</dt><dd>{receipt.caseId}</dd></div><div><dt>Offer version</dt><dd>V{offer.version}</dd></div><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Simulation</dt><dd>No payment or real appointment</dd></div></dl><div className="scope-grid"><div><span>Accepted scope</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Accepted exclusions</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>{receipt.decisions.length > 0 && <div className="receipt-decisions"><h2>Later decisions</h2>{receipt.decisions.map((decision) => <p key={decision.changeOrderId}><b>{decision.changeOrderId}</b><StatusPill status={decision.decision} /><span>{new Date(decision.decidedAt).toLocaleString()}</span></p>)}</div>}</article><MarketPanel compact /></main>;
 }
 
 function NotFound() {
@@ -459,6 +550,7 @@ export function App() {
   if (pathname === "/") page = <Landing status={webMCP} />;
   else if (pathname === "/demo/customer") page = <CustomerPage status={webMCP} />;
   else if (pathname === "/demo/owner") page = <OwnerPage />;
+  else if (pathname === "/demo/operations") page = <OperationsPage status={webMCP} />;
   else if (pathname.startsWith("/evidence/")) page = <EvidencePage sourceId={decodeURIComponent(pathname.slice("/evidence/".length))} />;
   else if (pathname.startsWith("/receipt/")) page = <ReceiptPage receiptId={decodeURIComponent(pathname.slice("/receipt/".length))} />;
   else page = <NotFound />;
