@@ -12,6 +12,7 @@ export type ToolCode =
   | "OK"
   | "SAFETY_STOP"
   | "AWAITING_OWNER"
+  | "STILL_WAITING"
   | "WAIT_EXPIRED"
   | "STALE_REVISION"
   | "AWAITING_HUMAN"
@@ -153,6 +154,12 @@ export interface ServiceCase {
   budgetCents?: number;
   preferredWindows: string[];
   constraints: string[];
+  serviceLocation?: {
+    text: string;
+    precision: "area" | "address";
+    customerConfirmed: true;
+    updatedAt: string;
+  };
   createdAt: string;
   messages: CaseMessage[];
   offers: ServiceOffer[];
@@ -385,6 +392,17 @@ export type Command =
       budgetCents?: number;
       preferredWindows: string[];
       constraints: string[];
+      serviceLocation?: string;
+      locationPrecision?: "area" | "address";
+      locationConsentConfirmed?: boolean;
+    }
+  | {
+      type: "SET_SERVICE_LOCATION";
+      caseId: string;
+      expectedRevision: number;
+      serviceLocation: string;
+      precision: "area" | "address";
+      consentConfirmed: boolean;
     }
   | {
       type: "CUSTOMER_MESSAGE";
@@ -528,7 +546,9 @@ export function runCommand(
       !validText(command.problemSummary, 800) ||
       !SERVICES.some((service) => service.id === command.serviceId) ||
       command.preferredWindows.length > 4 ||
-      command.constraints.length > 8
+      command.constraints.length > 8 ||
+      (command.serviceLocation !== undefined &&
+        (!validText(command.serviceLocation, 240) || !command.locationConsentConfirmed))
     ) {
       return fail(state, "INVALID_STATE", "The service request failed validation.");
     }
@@ -563,6 +583,14 @@ export function runCommand(
       budgetCents: command.budgetCents,
       preferredWindows: command.preferredWindows.map((item) => item.trim()).filter(Boolean),
       constraints: command.constraints.map((item) => item.trim()).filter(Boolean),
+      serviceLocation: command.serviceLocation
+        ? {
+            text: command.serviceLocation.trim(),
+            precision: command.locationPrecision ?? "area",
+            customerConfirmed: true,
+            updatedAt: now,
+          }
+        : undefined,
       createdAt: now,
       messages: [
         {
@@ -614,6 +642,41 @@ export function runCommand(
   const now = context.now();
 
   switch (command.type) {
+    case "SET_SERVICE_LOCATION": {
+      if (!command.consentConfirmed || !validText(command.serviceLocation, 240)) {
+        return fail(state, "INVALID_STATE", "A service location requires explicit customer confirmation.", original);
+      }
+      serviceCase.revision += 1;
+      serviceCase.serviceLocation = {
+        text: command.serviceLocation.trim(),
+        precision: command.precision,
+        customerConfirmed: true,
+        updatedAt: now,
+      };
+      serviceCase.messages.push({
+        id: context.id("MSG"),
+        actor: "customer",
+        kind: "status",
+        text: `Customer confirmed the ${command.precision === "address" ? "service address" : "service area"}.`,
+        createdAt: now,
+        revision: serviceCase.revision,
+      });
+      return {
+        state: next,
+        result: result({
+          ok: true,
+          code: "OK",
+          caseId: serviceCase.id,
+          beforeRevision: before,
+          afterRevision: serviceCase.revision,
+          effect: "Updated the customer-confirmed service location.",
+          didNot: ["No geocoding was performed.", "No appointment or travel promise was made."],
+          data: serviceCase.serviceLocation,
+          nextActions: nextActionsFor(serviceCase),
+        }),
+      };
+    }
+
     case "CUSTOMER_MESSAGE": {
       if (!validText(command.text, 1000) || serviceCase.status === "booking_prepared") {
         return fail(state, "INVALID_STATE", "A customer message is not valid in the current case state.", original);

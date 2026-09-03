@@ -13,6 +13,7 @@ import {
 import { PromiseDiffStore } from "./store";
 import { installWebMCP, waitForOwnerReply } from "./webmcp";
 import { compareQuoteContext, createProjectPlan, getMarketContext, searchSite, summarizeMetrics } from "./operations";
+import { caseVisuals } from "./case-visuals";
 
 const context: RuntimeContext = (() => {
   let id = 0;
@@ -165,6 +166,39 @@ describe("Velaire agreement boundary", () => {
     expect(preflight.officialSources.find((source) => source.authority === "ENERGY STAR")?.status).toContain("ended_2025");
   });
 
+  it("stores only a confirmed service location and returns a chat-ready graph with map links", () => {
+    const store = new PromiseDiffStore(initialState());
+    const opened = send(store, {
+      type: "OPEN_CASE",
+      serviceId: "ac-diagnostic",
+      problemSummary: "AC is blowing warm air.",
+      postcode: "60614",
+      urgency: "same_day",
+      preferredWindows: ["Today, 2–4 PM"],
+      constraints: [],
+      serviceLocation: "Lincoln Park, Chicago, IL 60614",
+      locationPrecision: "area",
+      locationConsentConfirmed: true,
+    });
+    const serviceCase = store.getSnapshot().cases[0];
+    expect(serviceCase.serviceLocation?.customerConfirmed).toBe(true);
+    const visual = caseVisuals(serviceCase, "https://example.test", "customer-token");
+    expect(visual.mermaid).toContain("flowchart LR");
+    expect(visual.visualUrl).toContain("access=customer-token");
+    expect(visual.location.googleMapsUrl).toContain("Lincoln%20Park");
+
+    const rejected = send(store, {
+      type: "SET_SERVICE_LOCATION",
+      caseId: opened.caseId!,
+      expectedRevision: 1,
+      serviceLocation: "Unconfirmed address",
+      precision: "address",
+      consentConfirmed: false,
+    });
+    expect(rejected.code).toBe("INVALID_STATE");
+    expect(store.getSnapshot().cases[0].revision).toBe(1);
+  });
+
   it("resolves a pending wait only after a human-sent owner event and leaves abort recoverable", async () => {
     const store = new PromiseDiffStore(initialState());
     const caseId = openCase(store);
@@ -194,13 +228,15 @@ describe("Velaire agreement boundary", () => {
     vi.stubGlobal("window", fakeWindow);
     vi.stubGlobal("document", { modelContext: { registerTool: (tool: WebMCPTool) => { registrations.push(tool); } } });
     const customer = await installWebMCP(store, "customer");
-    expect(customer.registered).toHaveLength(26);
+    expect(customer.registered).toHaveLength(28);
     expect(customer.registered).toContain("velaire_get_site_manifest");
     expect(customer.registered).toContain("velaire_get_market_price_context");
     expect(customer.registered).toContain("velaire_prepare_project_plan");
     expect(customer.registered).toContain("velaire_get_webmcp_health");
     expect(customer.registered).toContain("velaire_compare_change_order");
     expect(customer.registered).toContain("velaire_audit_invoice_against_receipt");
+    expect(customer.registered).toContain("velaire_set_service_location");
+    expect(customer.registered).toContain("velaire_get_case_visuals");
     const customerRead = await registrations.find((tool) => tool.name === "velaire_get_service_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
     ) as { data: Record<string, unknown> };
@@ -228,7 +264,8 @@ describe("Velaire agreement boundary", () => {
     customer.dispose();
     registrations.length = 0;
     const owner = await installWebMCP(store, "owner");
-    expect(owner.registered).toHaveLength(18);
+    expect(owner.registered).toHaveLength(19);
+    expect(owner.registered).toContain("velaire_wait_for_customer_reply");
     expect(owner.registered).not.toContain("velaire_prepare_booking");
     const ownerRead = await registrations.find((tool) => tool.name === "velaire_get_owner_case")!.execute(
       { caseId }, { signal: new AbortController().signal },
@@ -253,9 +290,9 @@ describe("Velaire agreement boundary", () => {
       },
     });
     const pending = installWebMCP(new PromiseDiffStore(initialState()), "customer");
-    expect(registrations).toHaveLength(26);
+    expect(registrations).toHaveLength(28);
     releases.forEach((release) => release());
-    expect((await pending).registered).toHaveLength(26);
+    expect((await pending).registered).toHaveLength(28);
     vi.unstubAllGlobals();
   });
 });

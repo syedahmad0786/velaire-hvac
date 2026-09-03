@@ -20,6 +20,7 @@ import {
   type ToolResult,
   type Urgency,
 } from "./domain";
+import { caseVisuals } from "./case-visuals";
 import { PromiseDiffStore } from "./store";
 import {
   MARKET_SERIES,
@@ -173,17 +174,27 @@ function canonical(path: string): string {
   return new URL(path, origin).toString();
 }
 
-function ownerRevision(serviceCase: ServiceCase): number {
-  return Math.max(
-    0,
-    ...serviceCase.messages.filter((item) => item.actor === "owner").map((item) => item.revision),
-    ...serviceCase.offers.map((item) => item.revision),
-    ...serviceCase.changeOrders.map((item) => item.revision),
-  );
+function actorRevision(serviceCase: ServiceCase, actor: "customer" | "owner"): number {
+  const related = actor === "owner"
+    ? [...serviceCase.offers.map((item) => item.revision), ...serviceCase.changeOrders.map((item) => item.revision)]
+    : [];
+  return Math.max(0, ...related, ...serviceCase.messages.filter((item) => item.actor === actor).map((item) => item.revision));
 }
 
-function casePayload(serviceCase: ServiceCase, includeOwnerDraft = false) {
+function casePayload(serviceCase: ServiceCase, includeOwnerDraft = false, store?: PromiseDiffStore) {
   const { ownerDraft, ...customerSafeCase } = serviceCase;
+  const session = store?.getSharedSession();
+  const customerUrl = new URL(`/demo/customer?case=${encodeURIComponent(serviceCase.id)}`, canonical("/"));
+  const ownerUrl = new URL(`/demo/owner?case=${encodeURIComponent(serviceCase.id)}`, canonical("/"));
+  const graphUrl = new URL(`/case-graph/${encodeURIComponent(serviceCase.id)}?case=${encodeURIComponent(serviceCase.id)}`, canonical("/"));
+  if (session?.caseId === serviceCase.id) {
+    if (session.role === "customer") {
+      customerUrl.searchParams.set("access", session.accessToken);
+      graphUrl.searchParams.set("access", session.accessToken);
+    } else {
+      ownerUrl.searchParams.set("access", session.accessToken);
+    }
+  }
   return {
     ...customerSafeCase,
     ...(includeOwnerDraft && ownerDraft ? { ownerDraft } : {}),
@@ -195,24 +206,29 @@ function casePayload(serviceCase: ServiceCase, includeOwnerDraft = false) {
           : includeOwnerDraft && ownerDraft
             ? "Owner has a private draft that must be sent from the owner page."
             : null,
-    customerUrl: canonical(`/demo/customer?case=${encodeURIComponent(serviceCase.id)}`),
-    ownerUrl: canonical(`/demo/owner?case=${encodeURIComponent(serviceCase.id)}`),
+    customerUrl: customerUrl.toString(),
+    ownerUrl: store?.getOwnerInviteUrl() ?? ownerUrl.toString(),
+    caseGraphUrl: graphUrl.toString(),
     nextActions: nextActionsFor(serviceCase),
   };
 }
 
-export function waitForOwnerReply(
+function waitForActorReply(
   store: PromiseDiffStore,
   caseId: string,
   afterRevision: number,
   maxWaitSeconds: number,
+  actor: "customer" | "owner",
   signal?: AbortSignal,
 ): Promise<ToolResult> {
+  if (store.getSharedSession()) {
+    return store.waitShared(afterRevision, maxWaitSeconds, signal).then((shared) => shared ?? notFound(`Service case ${caseId}`));
+  }
   const find = () => store.getSnapshot().cases.find((item) => item.id === caseId);
   const current = find();
   if (!current) return Promise.resolve(notFound(`Service case ${caseId}`));
-  if (ownerRevision(current) > afterRevision) {
-    return Promise.resolve(readResult(casePayload(current), current.revision, current.id, nextActionsFor(current)));
+  if (actorRevision(current, actor) > afterRevision) {
+    return Promise.resolve(readResult(casePayload(current, actor === "customer", store), current.revision, current.id, nextActionsFor(current)));
   }
 
   return new Promise((resolve) => {
@@ -244,27 +260,47 @@ export function waitForOwnerReply(
       const latest = find();
       finish({
         ok: false,
-        code: "WAIT_EXPIRED",
+        code: "STILL_WAITING",
         caseId,
         beforeRevision: latest?.revision ?? afterRevision,
         afterRevision: latest?.revision ?? afterRevision,
-        effect: `No newer owner event arrived within ${maxWaitSeconds} seconds.`,
+        effect: `No newer ${actor} event arrived within ${maxWaitSeconds} seconds.`,
         didNot: ["No case state changed.", "ChatGPT was not subscribed after the tool call ended."],
         humanActionRequired: false,
-        data: latest ? casePayload(latest) : undefined,
-        nextActions: ["get_service_case"],
+        data: latest ? { serviceCase: casePayload(latest, actor === "customer", store), cursor: latest.revision, nextPollAfterMs: 750, maximumCooperativeWaitSeconds: 120 } : undefined,
+        nextActions: [`Call the ${actor === "owner" ? "velaire_wait_for_owner_reply" : "velaire_wait_for_customer_reply"} tool again with the returned cursor, until 120 seconds total or the user stops.`],
       });
-    }, Math.max(1, Math.min(20, maxWaitSeconds)) * 1000);
+    }, Math.max(1, Math.min(15, maxWaitSeconds)) * 1000);
 
     unsubscribe = store.subscribe(() => {
       const latest = find();
-      if (latest && ownerRevision(latest) > afterRevision) {
-        finish(readResult(casePayload(latest), latest.revision, latest.id, nextActionsFor(latest)));
+      if (latest && actorRevision(latest, actor) > afterRevision) {
+        finish(readResult(casePayload(latest, actor === "customer", store), latest.revision, latest.id, nextActionsFor(latest)));
       }
     });
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
   });
+}
+
+export function waitForOwnerReply(
+  store: PromiseDiffStore,
+  caseId: string,
+  afterRevision: number,
+  maxWaitSeconds: number,
+  signal?: AbortSignal,
+): Promise<ToolResult> {
+  return waitForActorReply(store, caseId, afterRevision, maxWaitSeconds, "owner", signal);
+}
+
+export function waitForCustomerReply(
+  store: PromiseDiffStore,
+  caseId: string,
+  afterRevision: number,
+  maxWaitSeconds: number,
+  signal?: AbortSignal,
+): Promise<ToolResult> {
+  return waitForActorReply(store, caseId, afterRevision, maxWaitSeconds, "customer", signal);
 }
 
 type ToolDefinition = WebMCPTool;
@@ -626,7 +662,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     {
       name: "velaire_open_service_case",
       title: "Open service case",
-      description: "Creates a bounded synthetic HVAC service case for owner review. It never books an appointment, charges payment, or collects an exact address, phone, email, or payment details.",
+      description: "Creates a durable synthetic HVAC service case and returns separate private customer and owner capability URLs for two-chat testing. It never books, charges, or collects phone, email, or payment details. A location is stored only when explicit customer confirmation is true.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -639,12 +675,16 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
           budgetCents: MONEY,
           preferredWindows: stringList(4, 120),
           constraints: stringList(8, 240),
+          serviceLocation: text(240),
+          locationPrecision: { type: "string", enum: ["area", "address"] },
+          locationConsentConfirmed: { type: "boolean" },
         },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
-          const input = record(value, ["serviceId", "problemSummary", "postcode", "urgency", "budgetCents", "preferredWindows", "constraints"]);
-          return store.dispatch({
+          const input = record(value, ["serviceId", "problemSummary", "postcode", "urgency", "budgetCents", "preferredWindows", "constraints", "serviceLocation", "locationPrecision", "locationConsentConfirmed"]);
+          const serviceLocation = optionalString(input, "serviceLocation", 240);
+          return await store.dispatchShared({
             type: "OPEN_CASE",
             serviceId: oneOf(input, "serviceId", ["ac-diagnostic", "ac-repair", "seasonal-tune-up"] as const),
             problemSummary: requiredString(input, "problemSummary", 800),
@@ -653,6 +693,9 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             budgetCents: optionalInteger(input, "budgetCents"),
             preferredWindows: strings(input, "preferredWindows", 4, 120),
             constraints: strings(input, "constraints", 8, 240),
+            serviceLocation,
+            locationPrecision: input.locationPrecision === undefined ? undefined : oneOf(input, "locationPrecision", ["area", "address"] as const),
+            locationConsentConfirmed: serviceLocation ? input.locationConsentConfirmed === true : undefined,
           }, "velaire_open_service_case", "customer_agent");
         } catch (error) {
           return invalid(error);
@@ -665,14 +708,69 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       description: "Reads the authoritative service case, revision, messages, offers, pending human action, booking, and change orders. It changes nothing.",
       inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId"]);
           const caseId = requiredString(input, "caseId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           return serviceCase
-            ? readResult(casePayload(serviceCase), serviceCase.revision, serviceCase.id, nextActionsFor(serviceCase))
+            ? readResult(casePayload(serviceCase, false, store), serviceCase.revision, serviceCase.id, nextActionsFor(serviceCase))
             : notFound(`Service case ${caseId}`);
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_set_service_location",
+      title: "Set customer-confirmed service location",
+      description: "Stores bounded customer-supplied location text on the shared case only when consentConfirmed is true. It returns map-search links but does not geocode, verify coordinates, promise travel, or collect contact/payment data.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["caseId", "expectedRevision", "serviceLocation", "precision", "consentConfirmed"],
+        properties: {
+          caseId: CASE_ID,
+          expectedRevision: REVISION,
+          serviceLocation: text(240),
+          precision: { type: "string", enum: ["area", "address"] },
+          consentConfirmed: { type: "boolean", const: true },
+        },
+      },
+      execute: async (value) => {
+        try {
+          const input = record(value, ["caseId", "expectedRevision", "serviceLocation", "precision", "consentConfirmed"]);
+          if (input.consentConfirmed !== true) throw new InputError("consentConfirmed must be true.");
+          const outcome = await store.dispatchShared({
+            type: "SET_SERVICE_LOCATION",
+            caseId: requiredString(input, "caseId", 80),
+            expectedRevision: integer(input, "expectedRevision"),
+            serviceLocation: requiredString(input, "serviceLocation", 240),
+            precision: oneOf(input, "precision", ["area", "address"] as const),
+            consentConfirmed: true,
+          }, "velaire_set_service_location", "customer_agent");
+          const serviceCase = outcome.caseId ? store.getSnapshot().cases.find((item) => item.id === outcome.caseId) : undefined;
+          return serviceCase ? { ...outcome, data: caseVisuals(serviceCase, window.location.origin, store.getSharedSession()?.accessToken).location } : outcome;
+        } catch (error) {
+          return invalid(error);
+        }
+      },
+    },
+    {
+      name: "velaire_get_case_visuals",
+      title: "Get case graph and map links",
+      description: "Returns a chat-ready structured event graph, Mermaid flowchart, exact case/revision totals, canonical visual-page URL, and Google Maps/OpenStreetMap search links. Read-only; location text is customer-supplied and not geocoded or verified.",
+      inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: async (value) => {
+        try {
+          const input = record(value, ["caseId"]);
+          const caseId = requiredString(input, "caseId", 80);
+          await store.refreshShared();
+          const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
+          if (!serviceCase) return notFound(`Service case ${caseId}`);
+          return readResult(caseVisuals(serviceCase, window.location.origin, store.getSharedSession()?.accessToken), serviceCase.revision, caseId, nextActionsFor(serviceCase));
         } catch (error) {
           return invalid(error);
         }
@@ -681,12 +779,12 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     {
       name: "velaire_wait_for_owner_reply",
       title: "Wait for owner reply",
-      description: "Waits up to 20 seconds for a newer owner message, sent offer, or sent change order. It observes browser cancellation and never changes the case.",
+      description: "Waits up to 15 seconds for a newer owner message, sent offer, or sent change order. If STILL_WAITING is returned, call it again with the returned cursor for a cooperative wait of at most 120 seconds total. It observes browser cancellation and never changes the case; the host may still end any call.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
         required: ["caseId", "afterRevision"],
-        properties: { caseId: CASE_ID, afterRevision: REVISION, maxWaitSeconds: { type: "integer", minimum: 1, maximum: 20 } },
+        properties: { caseId: CASE_ID, afterRevision: REVISION, maxWaitSeconds: { type: "integer", minimum: 1, maximum: 15 } },
       },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: (value, options) => {
@@ -696,7 +794,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             store,
             requiredString(input, "caseId", 80),
             integer(input, "afterRevision", 0),
-            optionalInteger(input, "maxWaitSeconds", 1, 20) ?? 10,
+            optionalInteger(input, "maxWaitSeconds", 1, 15) ?? 10,
             options.signal,
           );
         } catch (error) {
@@ -721,10 +819,10 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
           preferredWindow: text(160),
         },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "kind", "text", "proposedBudgetCents", "preferredWindow"]);
-          const outcome = store.dispatch({
+          const outcome = await store.dispatchShared({
             type: "CUSTOMER_MESSAGE",
             caseId: requiredString(input, "caseId", 80),
             expectedRevision: integer(input, "expectedRevision", 0),
@@ -734,7 +832,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
             preferredWindow: optionalString(input, "preferredWindow", 160),
           }, "velaire_submit_case_message", "customer_agent");
           const serviceCase = outcome.caseId ? store.getSnapshot().cases.find((item) => item.id === outcome.caseId) : undefined;
-          return serviceCase && outcome.data ? { ...outcome, data: casePayload(serviceCase) } : outcome;
+          return serviceCase && outcome.data ? { ...outcome, data: casePayload(serviceCase, false, store) } : outcome;
         } catch (error) {
           return invalid(error);
         }
@@ -749,10 +847,11 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
         properties: { caseId: CASE_ID, fromVersion: { type: "integer", minimum: 1 }, toVersion: { type: "integer", minimum: 1 } },
       },
       annotations: { readOnlyHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "fromVersion", "toVersion"]);
           const caseId = requiredString(input, "caseId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           if (!serviceCase) return notFound(`Service case ${caseId}`);
           const comparison = compareOfferVersions(serviceCase, integer(input, "fromVersion", 1), integer(input, "toVersion", 1));
@@ -770,10 +869,10 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
         type: "object", additionalProperties: false, required: ["caseId", "expectedRevision", "offerVersion"],
         properties: { caseId: CASE_ID, expectedRevision: REVISION, offerVersion: { type: "integer", minimum: 1 } },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "offerVersion"]);
-          return store.dispatch({
+          return await store.dispatchShared({
             type: "PREPARE_BOOKING",
             caseId: requiredString(input, "caseId", 80),
             expectedRevision: integer(input, "expectedRevision", 0),
@@ -790,14 +889,17 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
       description: "Returns the immutable accepted-offer snapshot and recorded change-order decisions for a simulated booking. Read-only.",
       inputSchema: { type: "object", additionalProperties: false, required: ["receiptId"], properties: { receiptId: text(80) } },
       annotations: { readOnlyHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["receiptId"]);
           const receiptId = requiredString(input, "receiptId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
-          return serviceCase?.receipt
-            ? readResult({ ...serviceCase.receipt, receiptUrl: canonical(`/receipt/${receiptId}`) }, serviceCase.revision, serviceCase.id)
-            : notFound(`Receipt ${receiptId}`);
+          if (!serviceCase?.receipt) return notFound(`Receipt ${receiptId}`);
+          const receiptUrl = new URL(`/receipt/${encodeURIComponent(receiptId)}?case=${encodeURIComponent(serviceCase.id)}`, canonical("/"));
+          const session = store.getSharedSession();
+          if (session?.role === "customer" && session.caseId === serviceCase.id) receiptUrl.searchParams.set("access", session.accessToken);
+          return readResult({ ...serviceCase.receipt, receiptUrl: receiptUrl.toString() }, serviceCase.revision, serviceCase.id);
         } catch (error) {
           return invalid(error);
         }
@@ -812,10 +914,11 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
         properties: { caseId: CASE_ID, changeOrderId: text(80) },
       },
       annotations: { readOnlyHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "changeOrderId"]);
           const caseId = requiredString(input, "caseId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
           if (!serviceCase) return notFound(`Service case ${caseId}`);
           const comparison = compareChangeOrder(serviceCase, requiredString(input, "changeOrderId", 80));
@@ -854,10 +957,11 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
         },
       },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["receiptId", "lines"]);
           const receiptId = requiredString(input, "receiptId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
           if (!serviceCase) return notFound(`Receipt ${receiptId}`);
           const audit = auditInvoiceAgainstReceipt(serviceCase, invoiceLines(input));
@@ -878,12 +982,13 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       description: "Lists the synthetic service-case queue with revision, status, summary, and owner deep link. Read-only.",
       inputSchema: { type: "object", additionalProperties: false, properties: {} },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           record(value, []);
+          await store.refreshShared();
           return readResult(store.getSnapshot().cases.map((item) => ({
             id: item.id, status: item.status, revision: item.revision, problemSummary: item.problemSummary,
-            postcode: item.postcode, ownerUrl: canonical(`/demo/owner?case=${encodeURIComponent(item.id)}`),
+            postcode: item.postcode, ownerUrl: casePayload(item, true, store).ownerUrl,
           })));
         } catch (error) { return invalid(error); }
       },
@@ -894,13 +999,40 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
       description: "Reads one authoritative service case for owner review. It changes and sends nothing.",
       inputSchema: { type: "object", additionalProperties: false, required: ["caseId"], properties: { caseId: CASE_ID } },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId"]);
           const caseId = requiredString(input, "caseId", 80);
+          await store.refreshShared();
           const serviceCase = store.getSnapshot().cases.find((item) => item.id === caseId);
-          return serviceCase ? readResult(casePayload(serviceCase, true), serviceCase.revision, caseId) : notFound(`Service case ${caseId}`);
+          return serviceCase ? readResult(casePayload(serviceCase, true, store), serviceCase.revision, caseId) : notFound(`Service case ${caseId}`);
         } catch (error) { return invalid(error); }
+      },
+    },
+    {
+      name: "velaire_wait_for_customer_reply",
+      title: "Wait for customer reply",
+      description: "Waits up to 15 seconds for a newer customer message or decision. If STILL_WAITING is returned, call it again with the returned cursor for a cooperative wait of at most 120 seconds total. It never changes or sends the case; the host may still end any call.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["caseId", "afterRevision"],
+        properties: { caseId: CASE_ID, afterRevision: REVISION, maxWaitSeconds: { type: "integer", minimum: 1, maximum: 15 } },
+      },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: (value, options) => {
+        try {
+          const input = record(value, ["caseId", "afterRevision", "maxWaitSeconds"]);
+          return waitForCustomerReply(
+            store,
+            requiredString(input, "caseId", 80),
+            integer(input, "afterRevision", 0),
+            optionalInteger(input, "maxWaitSeconds", 1, 15) ?? 10,
+            options.signal,
+          );
+        } catch (error) {
+          return invalid(error);
+        }
       },
     },
     {
@@ -911,10 +1043,10 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
         type: "object", additionalProperties: false, required: ["caseId", "expectedRevision", "text"],
         properties: { caseId: CASE_ID, expectedRevision: REVISION, text: text(1000) },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "text"]);
-          return store.dispatch({ type: "STAGE_OWNER_REPLY", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"), text: requiredString(input, "text", 1000) }, "velaire_stage_owner_reply", "owner_agent");
+          return await store.dispatchShared({ type: "STAGE_OWNER_REPLY", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"), text: requiredString(input, "text", 1000) }, "velaire_stage_owner_reply", "owner_agent");
         } catch (error) { return invalid(error); }
       },
     },
@@ -931,10 +1063,10 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
           warrantyDays: { type: "integer", minimum: 0, maximum: 3650 }, expiresAt: { type: "string", format: "date-time" },
         },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "totalCents", "arrivalWindow", "includedScope", "exclusions", "depositCents", "warrantyDays", "expiresAt"]);
-          return store.dispatch({
+          return await store.dispatchShared({
             type: "STAGE_OFFER", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"),
             totalCents: integer(input, "totalCents", 1), arrivalWindow: requiredString(input, "arrivalWindow", 160),
             includedScope: strings(input, "includedScope", 10), exclusions: strings(input, "exclusions", 10),
@@ -956,10 +1088,10 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
           removedScope: stringList(10), deltaCents: { ...MONEY, minimum: 1 }, scheduleImpact: text(240),
         },
       },
-      execute: (value) => {
+      execute: async (value) => {
         try {
           const input = record(value, ["caseId", "expectedRevision", "reason", "addedScope", "removedScope", "deltaCents", "scheduleImpact"]);
-          return store.dispatch({
+          return await store.dispatchShared({
             type: "STAGE_CHANGE_ORDER", caseId: requiredString(input, "caseId", 80), expectedRevision: integer(input, "expectedRevision"),
             reason: requiredString(input, "reason", 600), addedScope: strings(input, "addedScope", 10),
             removedScope: strings(input, "removedScope", 10), deltaCents: integer(input, "deltaCents", 1),
@@ -996,10 +1128,11 @@ function receiptTool(store: PromiseDiffStore): ToolDefinition[] {
     description: "Returns the immutable accepted-offer snapshot shown on this simulated receipt page. Read-only; it does not represent a real payment or appointment.",
     inputSchema: { type: "object", additionalProperties: false, required: ["receiptId"], properties: { receiptId: text(80) } },
     annotations: { readOnlyHint: true },
-    execute: (value) => {
+    execute: async (value) => {
       try {
         const input = record(value, ["receiptId"]);
         const receiptId = requiredString(input, "receiptId", 80);
+        await store.refreshShared();
         const serviceCase = store.getSnapshot().cases.find((item) => item.receipt?.id === receiptId);
         return serviceCase?.receipt ? readResult(serviceCase.receipt, serviceCase.revision, serviceCase.id) : notFound(`Receipt ${receiptId}`);
       } catch (error) { return invalid(error); }

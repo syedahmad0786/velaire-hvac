@@ -9,6 +9,7 @@ import {
   type ServiceOffer,
 } from "./domain";
 import { promiseDiffStore } from "./store";
+import { caseVisuals } from "./case-visuals";
 import { installWebMCP, type ToolRoute, type WebMCPStatus } from "./webmcp";
 import {
   getMarketContext,
@@ -31,6 +32,7 @@ function routeKind(pathname: string): ToolRoute {
   if (pathname === "/demo/customer") return "customer";
   if (pathname === "/demo/owner") return "owner";
   if (pathname === "/demo/operations") return "operations";
+  if (pathname.startsWith("/case-graph/")) return "customer";
   if (pathname.startsWith("/evidence/")) return "evidence";
   if (pathname.startsWith("/receipt/")) return "receipt";
   return "none";
@@ -51,6 +53,10 @@ function useWebMCP(route: ToolRoute) {
     };
   }, [route]);
   return status;
+}
+
+function useSharedCaseSync() {
+  useEffect(() => promiseDiffStore.startSharedSync(), []);
 }
 
 const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(cents / 100);
@@ -96,10 +102,12 @@ function SyntheticFlag() {
 
 const STARTER_PROMPT = "Use Velaire's WebMCP tools to check whether same-day AC service is available for an AC blowing warm air in 60614, with a budget ceiling of $180. Show the published evidence and a transparent planning range before opening a service case. Do not approve a booking or changed work for me.";
 
-function AgentGuide({ status, serviceCase, compact = false }: { status: WebMCPStatus | null; serviceCase?: ServiceCase; compact?: boolean }) {
+function AgentGuide({ status, serviceCase, compact = false, role = "customer" }: { status: WebMCPStatus | null; serviceCase?: ServiceCase; compact?: boolean; role?: "customer" | "owner" }) {
   const [copyLabel, setCopyLabel] = useState("Copy message");
   const prompt = serviceCase
-    ? `Use Velaire's WebMCP tools to get the latest status of service case ${serviceCase.id}. Summarize any new reply, offer, or change order, compare it with the accepted terms, and stop before any human approval.`
+    ? role === "owner"
+      ? `Act as Velaire's owner assistant for shared service case ${serviceCase.id}. Use the owner WebMCP tools to read revision ${serviceCase.revision}, stage the next appropriate reply or structured offer, and ask me to review and press the visible Send button. After I send it, call velaire_wait_for_customer_reply in 15-second rounds using the returned cursor, for no more than 120 seconds total. Never send or approve on my behalf.`
+      : `Act as my customer assistant for shared service case ${serviceCase.id}. Read the latest revision, summarize any new reply, offer, or change order, and use velaire_get_case_visuals to show the case graph and map links. If you send a question or counteroffer, call velaire_wait_for_owner_reply in 15-second rounds using the returned cursor, for no more than 120 seconds total. Stop before every human confirmation, payment, booking, or changed-work decision.`
     : STARTER_PROMPT;
   const connected = status?.supported === true;
   const headline = status === null
@@ -301,24 +309,30 @@ function OperationsPage({ status }: { status: WebMCPStatus | null }) {
 }
 
 function RequestForm() {
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const [error, setError] = useState("");
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
     const data = new FormData(event.currentTarget);
-    const result = promiseDiffStore.dispatch({
-      type: "OPEN_CASE",
-      serviceId: String(data.get("serviceId")),
-      problemSummary: String(data.get("problemSummary")),
-      postcode: String(data.get("postcode")),
-      urgency: "same_day",
-      budgetCents: Number(data.get("budgetDollars")) * 100,
-      preferredWindows: ["Today, 2–4 PM"],
-      constraints: ["No surprise travel fee", "Approval required before additional work"],
-    }, "human_open_service_case", "customer_human");
-    if (result.caseId) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("case", result.caseId);
-      url.searchParams.set("judge", "1");
-      window.history.replaceState({}, "", url);
+    try {
+      const result = await promiseDiffStore.dispatchShared({
+        type: "OPEN_CASE",
+        serviceId: String(data.get("serviceId")),
+        problemSummary: String(data.get("problemSummary")),
+        postcode: String(data.get("postcode")),
+        urgency: "same_day",
+        budgetCents: Number(data.get("budgetDollars")) * 100,
+        preferredWindows: ["Today, 2–4 PM"],
+        constraints: ["No surprise travel fee", "Approval required before additional work"],
+        serviceLocation: String(data.get("serviceLocation")),
+        locationPrecision: "area",
+        locationConsentConfirmed: data.get("locationConsent") === "on",
+      }, "human_open_service_case", "customer_human");
+      if (result.caseId && !promiseDiffStore.getSharedSession()) {
+        window.history.replaceState({}, "", `/demo/customer?case=${encodeURIComponent(result.caseId)}&judge=1`);
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to open the shared case.");
     }
   };
   return <form className="request-form" onSubmit={submit}>
@@ -329,9 +343,12 @@ function RequestForm() {
       <label>Postcode<input name="postcode" defaultValue="60614" maxLength={12} required /></label>
       <label>Budget ceiling ($)<input name="budgetDollars" type="number" min={0} max={100000} defaultValue={180} required /></label>
     </div>
+    <label>Service area for map link<input name="serviceLocation" defaultValue="Lincoln Park, Chicago, IL 60614" maxLength={240} required /></label>
+    <label className="consent-check"><input name="locationConsent" type="checkbox" defaultChecked required /><span>I confirm this synthetic location can be shared with the owner case.</span></label>
     <div className="constraint-note"><b>Shared with owner</b><span>Today 2–4 PM · No surprise travel fee · Approval before changed work</span></div>
     <button className="button primary full" type="submit">Open service case <span aria-hidden="true">→</span></button>
-    <small>Do not enter an exact address, contact details, or payment information.</small>
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <small>Fictional demo data only. Do not enter real contact or payment information.</small>
   </form>;
 }
 
@@ -404,7 +421,7 @@ function CounterForm({ serviceCase }: { serviceCase: ServiceCase }) {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    promiseDiffStore.dispatch({
+    void promiseDiffStore.dispatchShared({
       type: "CUSTOMER_MESSAGE", caseId: serviceCase.id, expectedRevision: serviceCase.revision,
       kind: "counter", text: String(data.get("message")), proposedBudgetCents: Number(data.get("budget")) * 100,
       preferredWindow: "Today, 2–4 PM",
@@ -415,8 +432,8 @@ function CounterForm({ serviceCase }: { serviceCase: ServiceCase }) {
 
 function CustomerDecision({ serviceCase }: { serviceCase: ServiceCase }) {
   const latest = serviceCase.offers.at(-1);
-  if (serviceCase.status === "offer_available" && latest) return <div className="decision-gate"><div><span>AGENT MAY PREPARE</span><h3>Stage offer V{latest.version} for confirmation</h3><p>This displays the exact terms. It does not book or charge.</p></div><button className="button primary" onClick={() => promiseDiffStore.dispatch({ type: "PREPARE_BOOKING", caseId: serviceCase.id, expectedRevision: serviceCase.revision, offerVersion: latest.version }, "human_prepare_booking", "customer_human")}>Prepare booking</button></div>;
-  if (serviceCase.status === "booking_prepared" && latest) return <div className="decision-gate critical"><div><span>HUMAN DECISION</span><h3>Confirm {money(latest.totalCents)} · {latest.arrivalWindow}</h3><p>Simulated booking only. No payment or real appointment.</p></div><div className="button-row"><button className="button quiet" onClick={() => promiseDiffStore.dispatch({ type: "CANCEL_BOOKING_PREPARATION", caseId: serviceCase.id }, "human_cancel_booking", "customer_human")}>Cancel</button><button className="button primary" onClick={() => promiseDiffStore.dispatch({ type: "CONFIRM_BOOKING", caseId: serviceCase.id }, "human_confirm_booking", "customer_human")}>I confirm these terms</button></div></div>;
+  if (serviceCase.status === "offer_available" && latest) return <div className="decision-gate"><div><span>AGENT MAY PREPARE</span><h3>Stage offer V{latest.version} for confirmation</h3><p>This displays the exact terms. It does not book or charge.</p></div><button className="button primary" onClick={() => void promiseDiffStore.dispatchShared({ type: "PREPARE_BOOKING", caseId: serviceCase.id, expectedRevision: serviceCase.revision, offerVersion: latest.version }, "human_prepare_booking", "customer_human")}>Prepare booking</button></div>;
+  if (serviceCase.status === "booking_prepared" && latest) return <div className="decision-gate critical"><div><span>HUMAN DECISION</span><h3>Confirm {money(latest.totalCents)} · {latest.arrivalWindow}</h3><p>Simulated booking only. No payment or real appointment.</p></div><div className="button-row"><button className="button quiet" onClick={() => void promiseDiffStore.dispatchShared({ type: "CANCEL_BOOKING_PREPARATION", caseId: serviceCase.id }, "human_cancel_booking", "customer_human")}>Cancel</button><button className="button primary" onClick={() => void promiseDiffStore.dispatchShared({ type: "CONFIRM_BOOKING", caseId: serviceCase.id }, "human_confirm_booking", "customer_human")}>I confirm these terms</button></div></div>;
   return null;
 }
 
@@ -428,7 +445,7 @@ function ChangeOrderPanel({ serviceCase }: { serviceCase: ServiceCase }) {
   return <section className="change-order"><header><div><span>UNEXPECTED CHANGE · {change.id}</span><h2>{change.reason}</h2></div><StatusPill status={change.status} /></header>
     <div className="change-math"><div><span>Accepted</span><b>{money(diff.originalTotalCents)}</b></div><i>+</i><div><span>Changed work</span><b>{money(diff.deltaCents)}</b></div><i>=</i><div className="new-total"><span>Proposed total</span><b>{money(diff.proposedTotalCents)}</b></div></div>
     <div className="change-details"><div><span>Added scope</span>{diff.addedScope.map((item) => <b key={item}>{item}</b>)}</div><div><span>Contract signal</span><b>{diff.explicitlyExcluded.length ? "Original offer excluded parts" : "Needs human scope review"}</b></div><div><span>Schedule impact</span><b>{diff.scheduleImpact}</b></div></div>
-    {change.status === "pending" && <div className="human-choice"><p><strong>Only you can decide.</strong> Velaire compared the documents; it did not judge whether the charge is justified.</p><div className="button-row"><button className="button quiet" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "rejected" }, "human_reject_change_order", "customer_human")}>Reject change</button><button className="button primary" onClick={() => promiseDiffStore.dispatch({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "accepted" }, "human_accept_change_order", "customer_human")}>Accept +{money(change.deltaCents)}</button></div></div>}
+    {change.status === "pending" && <div className="human-choice"><p><strong>Only you can decide.</strong> Velaire compared the documents; it did not judge whether the charge is justified.</p><div className="button-row"><button className="button quiet" onClick={() => void promiseDiffStore.dispatchShared({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "rejected" }, "human_reject_change_order", "customer_human")}>Reject change</button><button className="button primary" onClick={() => void promiseDiffStore.dispatchShared({ type: "DECIDE_CHANGE_ORDER", caseId: serviceCase.id, changeOrderId: change.id, decision: "accepted" }, "human_accept_change_order", "customer_human")}>Accept +{money(change.deltaCents)}</button></div></div>}
   </section>;
 }
 
@@ -439,7 +456,7 @@ function AuditRail({ audit, caseId }: { audit: AuditEvent[]; caseId: string }) {
 
 function stageDemoOffer(serviceCase: ServiceCase) {
   const revised = serviceCase.offers.length > 0;
-  promiseDiffStore.dispatch({
+  void promiseDiffStore.dispatchShared({
     type: "STAGE_OFFER", caseId: serviceCase.id, expectedRevision: serviceCase.revision,
     totalCents: revised ? 17500 : 19500, arrivalWindow: "Today, 2–4 PM",
     includedScope: ["Cooling diagnostic", "Diagnostic labour", "Written findings"],
@@ -455,16 +472,16 @@ function OwnerControls({ serviceCase, compact = false }: { serviceCase: ServiceC
     const command = draft.kind === "reply" ? { type: "SEND_OWNER_REPLY" as const, caseId: serviceCase.id }
       : draft.kind === "offer" ? { type: "SEND_OFFER" as const, caseId: serviceCase.id }
         : { type: "SEND_CHANGE_ORDER" as const, caseId: serviceCase.id };
-    promiseDiffStore.dispatch(command, `human_send_${draft.kind}`, "owner_human");
+    void promiseDiffStore.dispatchShared(command, `human_send_${draft.kind}`, "owner_human");
   };
   return <div className={compact ? "owner-controls compact" : "owner-controls"}>
     <div className="owner-control-head"><div><span>OWNER AUTHORITY</span><h2>{compact ? "Judge simulator" : "Stage a response"}</h2></div><StatusPill status={serviceCase.status} /></div>
     {!draft && <div className="owner-presets">
-      {serviceCase.status === "awaiting_provider" && <><button className="action-tile" onClick={() => promiseDiffStore.dispatch({ type: "STAGE_OWNER_REPLY", caseId: serviceCase.id, expectedRevision: serviceCase.revision, text: "I can review this same-day request. I will send exact terms next." }, "human_stage_owner_reply", "owner_human")}><span>01</span><b>Stage acknowledgement</b><small>Private until human sends</small></button><button className="action-tile highlighted" onClick={() => stageDemoOffer(serviceCase)}><span>02</span><b>Stage $195 offer</b><small>2–4 PM · $49 deposit</small></button></>}
+      {serviceCase.status === "awaiting_provider" && <><button className="action-tile" onClick={() => void promiseDiffStore.dispatchShared({ type: "STAGE_OWNER_REPLY", caseId: serviceCase.id, expectedRevision: serviceCase.revision, text: "I can review this same-day request. I will send exact terms next." }, "human_stage_owner_reply", "owner_human")}><span>01</span><b>Stage acknowledgement</b><small>Private until human sends</small></button><button className="action-tile highlighted" onClick={() => stageDemoOffer(serviceCase)}><span>02</span><b>Stage $195 offer</b><small>2–4 PM · $49 deposit</small></button></>}
       {serviceCase.status === "negotiating" && <button className="action-tile highlighted" onClick={() => stageDemoOffer(serviceCase)}><span>03</span><b>Stage revised $175 offer</b><small>Preserves time; clarifies exclusions</small></button>}
       {serviceCase.status === "offer_available" && <p className="waiting-note">The sent offer is waiting for the customer. The owner cannot accept it on their behalf.</p>}
       {serviceCase.status === "booking_prepared" && <p className="waiting-note">The customer is reviewing exact terms. There is no owner-side confirmation control.</p>}
-      {serviceCase.status === "booked" && <button className="action-tile warning" onClick={() => promiseDiffStore.dispatch({ type: "STAGE_CHANGE_ORDER", caseId: serviceCase.id, expectedRevision: serviceCase.revision, reason: "Weak capacitor found during diagnostic", addedScope: ["Replacement part: capacitor", "Capacitor installation"], removedScope: [], deltaCents: 14500, scheduleImpact: "Adds approximately 30 minutes; same arrival window" }, "human_stage_change_order", "owner_human")}><span>04</span><b>Stage +$145 change order</b><small>Private until human sends</small></button>}
+      {serviceCase.status === "booked" && <button className="action-tile warning" onClick={() => void promiseDiffStore.dispatchShared({ type: "STAGE_CHANGE_ORDER", caseId: serviceCase.id, expectedRevision: serviceCase.revision, reason: "Weak capacitor found during diagnostic", addedScope: ["Replacement part: capacitor", "Capacitor installation"], removedScope: [], deltaCents: 14500, scheduleImpact: "Adds approximately 30 minutes; same arrival window" }, "human_stage_change_order", "owner_human")}><span>04</span><b>Stage +$145 change order</b><small>Private until human sends</small></button>}
       {serviceCase.status === "change_pending" && <p className="waiting-note">The customer must accept or reject the changed work. The accepted snapshot is still locked.</p>}
     </div>}
     {draft && <div className="draft-sheet"><div className="draft-banner"><span>PRIVATE DRAFT</span><b>Not customer-visible</b></div><h3>{titleCase(draft.kind)}</h3>
@@ -476,11 +493,43 @@ function OwnerControls({ serviceCase, compact = false }: { serviceCase: ServiceC
   </div>;
 }
 
+function SharedCasePanel({ serviceCase }: { serviceCase: ServiceCase }) {
+  const [copyLabel, setCopyLabel] = useState("Copy owner invite");
+  const session = promiseDiffStore.getSharedSession();
+  const ownerInvite = promiseDiffStore.getOwnerInviteUrl();
+  const visuals = caseVisuals(serviceCase, window.location.origin, session?.role === "customer" ? session.accessToken : undefined);
+  const copyInvite = async () => {
+    if (!ownerInvite) return;
+    try {
+      await navigator.clipboard.writeText(ownerInvite);
+      setCopyLabel("Owner invite copied");
+    } catch {
+      setCopyLabel("Select the link manually");
+    }
+  };
+  return <section className="shared-case-panel" aria-label="Shared case access">
+    <div><span className="live-orb" aria-hidden="true" /><p><b>{session ? "Shared case is live" : "Browser-local preview"}</b><small>{session ? "Customer and owner pages refresh from one durable case." : "Open a new case on the live site to create separate capability links."}</small></p></div>
+    <div className="shared-case-actions">
+      {ownerInvite && <button className="button copper" type="button" onClick={copyInvite}>{copyLabel}</button>}
+      <a className="button quiet" href={visuals.visualUrl}>Open case graph ↗</a>
+      <a className="button quiet" href={visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">Open map ↗</a>
+    </div>
+    {ownerInvite && <small className="capability-warning">Private capability link: send it only to the owner chat. Production would deliver this server-side.</small>}
+  </section>;
+}
+
 function CustomerCase({ serviceCase, judge }: { serviceCase: ServiceCase; judge: boolean }) {
   const state = usePromiseDiffState();
   const latest = serviceCase.offers.at(-1);
+  const session = promiseDiffStore.getSharedSession();
+  const receiptHref = serviceCase.receipt ? new URL(`/receipt/${encodeURIComponent(serviceCase.receipt.id)}`, window.location.origin) : undefined;
+  if (receiptHref) {
+    receiptHref.searchParams.set("case", serviceCase.id);
+    if (session?.role === "customer" && session.caseId === serviceCase.id) receiptHref.searchParams.set("access", session.accessToken);
+  }
   return <>
     <div className="case-title"><div><p className="eyebrow">Velaire Heating &amp; Air / service case</p><h1>{serviceCase.problemSummary}</h1><p><code>{serviceCase.id}</code> · Postcode {serviceCase.postcode} · {titleCase(serviceCase.urgency)}</p></div><StatusPill status={serviceCase.status} /></div>
+    <SharedCasePanel serviceCase={serviceCase} />
     <TermsBar serviceCase={serviceCase} />
     <div className={`case-layout ${judge ? "with-judge" : ""}`}>
       <div className="case-main">
@@ -488,7 +537,7 @@ function CustomerCase({ serviceCase, judge }: { serviceCase: ServiceCase; judge:
         {serviceCase.offers.length > 0 && <section className="case-panel"><div className="panel-heading"><h2>Sent offers</h2><span>Drafts never appear here</span></div><div className="offers-grid">{serviceCase.offers.map((offer) => <OfferCard key={offer.version} offer={offer} latest={offer.version === latest?.version} />)}</div><OfferDiff serviceCase={serviceCase} /></section>}
         <CounterForm serviceCase={serviceCase} />
         <CustomerDecision serviceCase={serviceCase} />
-        {serviceCase.receipt && <div className="receipt-callout"><div><span>IMMUTABLE RECEIPT</span><h3>{serviceCase.receipt.id}</h3><p>Accepted offer V{serviceCase.receipt.acceptedOffer.version} is frozen independently of future displays.</p></div><a className="button quiet" href={`/receipt/${serviceCase.receipt.id}`}>Open receipt ↗</a></div>}
+        {serviceCase.receipt && <div className="receipt-callout"><div><span>IMMUTABLE RECEIPT</span><h3>{serviceCase.receipt.id}</h3><p>Accepted offer V{serviceCase.receipt.acceptedOffer.version} is frozen independently of future displays.</p></div><a className="button quiet" href={receiptHref?.toString()}>Open receipt ↗</a></div>}
         <ChangeOrderPanel serviceCase={serviceCase} />
       </div>
       <aside className="case-side">{judge && <OwnerControls serviceCase={serviceCase} compact />}<AuditRail audit={state.audit} caseId={serviceCase.id} /><div className="side-evidence"><div className="panel-heading"><h2>Source cards</h2><span>canonical</span></div><EvidenceCards compact /></div></aside>
@@ -501,25 +550,27 @@ function CustomerPage({ status }: { status: WebMCPStatus | null }) {
   const params = new URLSearchParams(window.location.search);
   const selected = params.get("case");
   const serviceCase = state.cases.find((item) => item.id === selected) ?? (selected ? undefined : state.cases[0]);
+  const shared = promiseDiffStore.getSharedSession()?.role === "customer";
   return <main className="app-page customer-page">
-    <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm("Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer?judge=1"); } }}>Reset demo</button></div>
+    <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm(shared ? "Leave this shared fictional case on this device? The durable demo record will remain available through its private links." : "Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer"); } }}>Reset demo</button></div>
     <AgentGuide status={status} serviceCase={serviceCase} compact />
-    {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={params.get("judge") === "1"} /> : <Storefront />}
+    {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={!shared && params.get("judge") === "1"} /> : <Storefront />}
   </main>;
 }
 
-function OwnerPage() {
+function OwnerPage({ status }: { status: WebMCPStatus | null }) {
   const state = usePromiseDiffState();
   const params = new URLSearchParams(window.location.search);
   const requested = params.get("case");
   const selected = state.cases.find((item) => item.id === requested) ?? state.cases[0];
   return <main className="app-page owner-page">
-    <div className="demo-ribbon owner"><SyntheticFlag /><span>Provider route · demo capability boundary, not production authentication.</span></div>
-    <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Service case queue</h1><p>Agents may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>open demo cases</span></div></div>
+    <div className="demo-ribbon owner"><SyntheticFlag /><span>Private owner capability · use this URL only in the owner chat.</span></div>
+    <AgentGuide status={status} serviceCase={selected} compact role="owner" />
+    <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Shared service case</h1><p>The owner agent may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>accessible demo case</span></div></div>
     {selected ? <div className="owner-layout">
       <aside className="case-queue"><h2>Cases</h2>{state.cases.map((item) => <a className={item.id === selected.id ? "selected" : ""} href={`/demo/owner?case=${item.id}`} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
-      <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={`/demo/customer?case=${selected.id}&judge=1`}>Open customer view ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
-    </div> : <div className="empty-state"><span>QUEUE EMPTY</span><h2>Open the synthetic customer request first.</h2><p>The owner desk will receive the versioned service case instantly through local browser synchronization.</p><a className="button primary" href="/demo/customer?judge=1">Open customer room</a></div>}
+      <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={caseVisuals(selected, window.location.origin).location.googleMapsUrl} target="_blank" rel="noreferrer">Open service map ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
+    </div> : <div className="empty-state"><span>NO CAPABILITY</span><h2>Open the private owner invite from the customer case.</h2><p>A case cannot be discovered by ID alone; the owner URL carries a separate capability token.</p><a className="button primary" href="/demo/customer">Open customer room</a></div>}
   </main>;
 }
 
@@ -535,7 +586,45 @@ function ReceiptPage({ receiptId }: { receiptId: string }) {
   const receipt = serviceCase?.receipt;
   if (!serviceCase || !receipt) return <main className="document-page"><a className="back-link" href="/demo/customer">← Customer room</a><div className="empty-state"><span>RECEIPT NOT FOUND</span><h2>This simulated receipt only exists in the browser where it was confirmed.</h2></div></main>;
   const offer = receipt.acceptedOffer;
-  return <main className="document-page"><a className="back-link" href={`/demo/customer?case=${serviceCase.id}&judge=1`}>← Return to case</a><article className="receipt-document"><header><div><p className="eyebrow">Accepted promise snapshot</p><h1>{receipt.id}</h1><p>Confirmed {new Date(receipt.confirmedAt).toLocaleString()}</p></div><SyntheticFlag /></header><div className="receipt-total"><span>Accepted total</span><strong>{money(offer.totalCents)}</strong></div><dl><div><dt>Case</dt><dd>{receipt.caseId}</dd></div><div><dt>Offer version</dt><dd>V{offer.version}</dd></div><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Simulation</dt><dd>No payment or real appointment</dd></div></dl><div className="scope-grid"><div><span>Accepted scope</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Accepted exclusions</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>{receipt.decisions.length > 0 && <div className="receipt-decisions"><h2>Later decisions</h2>{receipt.decisions.map((decision) => <p key={decision.changeOrderId}><b>{decision.changeOrderId}</b><StatusPill status={decision.decision} /><span>{new Date(decision.decidedAt).toLocaleString()}</span></p>)}</div>}</article><MarketPanel compact /></main>;
+  const backUrl = new URL("/demo/customer", window.location.origin);
+  backUrl.searchParams.set("case", serviceCase.id);
+  const session = promiseDiffStore.getSharedSession();
+  if (session?.role === "customer") backUrl.searchParams.set("access", session.accessToken);
+  return <main className="document-page"><a className="back-link" href={backUrl.toString()}>← Return to case</a><article className="receipt-document"><header><div><p className="eyebrow">Accepted promise snapshot</p><h1>{receipt.id}</h1><p>Confirmed {new Date(receipt.confirmedAt).toLocaleString()}</p></div><SyntheticFlag /></header><div className="receipt-total"><span>Accepted total</span><strong>{money(offer.totalCents)}</strong></div><dl><div><dt>Case</dt><dd>{receipt.caseId}</dd></div><div><dt>Offer version</dt><dd>V{offer.version}</dd></div><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Simulation</dt><dd>No payment or real appointment</dd></div></dl><div className="scope-grid"><div><span>Accepted scope</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Accepted exclusions</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>{receipt.decisions.length > 0 && <div className="receipt-decisions"><h2>Later decisions</h2>{receipt.decisions.map((decision) => <p key={decision.changeOrderId}><b>{decision.changeOrderId}</b><StatusPill status={decision.decision} /><span>{new Date(decision.decidedAt).toLocaleString()}</span></p>)}</div>}</article><MarketPanel compact /></main>;
+}
+
+function CaseGraphPage({ caseId }: { caseId: string }) {
+  const state = usePromiseDiffState();
+  const serviceCase = state.cases.find((item) => item.id === caseId);
+  if (!serviceCase) return <main className="document-page"><div className="empty-state"><span>LOADING SHARED CASE</span><h2>Checking the private customer capability…</h2><p>If this remains empty, reopen the complete customer graph link.</p></div></main>;
+  const session = promiseDiffStore.getSharedSession();
+  const visuals = caseVisuals(serviceCase, window.location.origin, session?.role === "customer" ? session.accessToken : undefined);
+  const customerUrl = new URL("/demo/customer", window.location.origin);
+  customerUrl.searchParams.set("case", serviceCase.id);
+  if (session?.role === "customer") customerUrl.searchParams.set("access", session.accessToken);
+  const width = Math.max(760, visuals.nodes.length * 190);
+  return <main className="document-page graph-page">
+    <a className="back-link" href={customerUrl.toString()}>← Return to customer case</a>
+    <article className="graph-document">
+      <header><div><p className="eyebrow">Shared case graph · revision {serviceCase.revision}</p><h1>{serviceCase.id}</h1><p>{visuals.stageLabel}</p></div><StatusPill status={serviceCase.status} /></header>
+      <div className="graph-scroll" role="img" aria-label={`Event graph for ${serviceCase.id}`}>
+        <svg viewBox={`0 0 ${width} 250`} width={width} height="250">
+          <title>{`Velaire service case ${serviceCase.id} event sequence`}</title>
+          {visuals.nodes.slice(1).map((node, index) => <line key={`line-${node.id}`} x1={105 + index * 190} y1="92" x2={245 + index * 190} y2="92" className="graph-edge" />)}
+          {visuals.nodes.map((node, index) => <g key={node.id} transform={`translate(${30 + index * 190} 35)`}>
+            <rect width="150" height="118" rx="18" className={`graph-node actor-${node.actor}`} />
+            <text x="16" y="28" className="graph-actor">{titleCase(node.actor)}</text>
+            <text x="16" y="52" className="graph-revision">Revision {node.revision}</text>
+            <text x="16" y="77" className="graph-copy">{node.label.slice(0, 20)}</text>
+            <text x="16" y="97" className="graph-copy">{node.label.slice(20, 40)}{node.label.length > 40 ? "…" : ""}</text>
+          </g>)}
+        </svg>
+      </div>
+      <div className="graph-summary-grid"><section><span>CURRENT STAGE</span><strong>{visuals.stageLabel}</strong><small>Case rev {visuals.revision}</small></section><section><span>SERVICE LOCATION</span><strong>{visuals.location.text}</strong><small>{visuals.location.customerConfirmed ? "Customer confirmed" : "Postcode-derived search"}</small></section><section><span>LATEST OFFER</span><strong>{visuals.totals.latestOfferCents === null ? "Not sent" : money(visuals.totals.latestOfferCents)}</strong><small>Accepted: {visuals.totals.acceptedCents === null ? "—" : money(visuals.totals.acceptedCents)}</small></section></div>
+      <div className="button-row graph-links"><a className="button primary" href={visuals.location.googleMapsUrl} target="_blank" rel="noreferrer">Google Maps search ↗</a><a className="button quiet" href={visuals.location.openStreetMapUrl} target="_blank" rel="noreferrer">OpenStreetMap ↗</a></div>
+      <p className="graph-limitation">{visuals.location.limitation}</p>
+    </article>
+  </main>;
 }
 
 function NotFound() {
@@ -543,14 +632,16 @@ function NotFound() {
 }
 
 export function App() {
+  useSharedCaseSync();
   const pathname = window.location.pathname.replace(/\/$/, "") || "/";
   const route = routeKind(pathname);
   const webMCP = useWebMCP(route);
   let page: ReactNode;
   if (pathname === "/") page = <Landing status={webMCP} />;
   else if (pathname === "/demo/customer") page = <CustomerPage status={webMCP} />;
-  else if (pathname === "/demo/owner") page = <OwnerPage />;
+  else if (pathname === "/demo/owner") page = <OwnerPage status={webMCP} />;
   else if (pathname === "/demo/operations") page = <OperationsPage status={webMCP} />;
+  else if (pathname.startsWith("/case-graph/")) page = <CaseGraphPage caseId={decodeURIComponent(pathname.slice("/case-graph/".length))} />;
   else if (pathname.startsWith("/evidence/")) page = <EvidencePage sourceId={decodeURIComponent(pathname.slice("/evidence/".length))} />;
   else if (pathname.startsWith("/receipt/")) page = <ReceiptPage receiptId={decodeURIComponent(pathname.slice("/receipt/".length))} />;
   else page = <NotFound />;
