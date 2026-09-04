@@ -81,6 +81,9 @@ function Logo() {
 }
 
 function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus | null }) {
+  const session = promiseDiffStore.getSharedSession();
+  const serviceRoomHref = session?.role === "customer" ? caseHref("customer", session.caseId) : "/demo/customer?judge=1";
+  const ownerPortalHref = session?.role === "owner" ? caseHref("owner", session.caseId) : "/demo/owner";
   const agentStatus = status === null
     ? "Checking assistant access"
     : status.supported
@@ -92,9 +95,9 @@ function Shell({ children, status }: { children: ReactNode; status: WebMCPStatus
       <nav aria-label="Primary navigation">
         <a href="/#services">Services</a>
         <a href="/#agent-access">Use with ChatGPT</a>
-        <a href="/demo/customer?judge=1">Service room</a>
+        <a href={serviceRoomHref}>Service room</a>
         <a href="/demo/operations">Service insights</a>
-        <a href="/demo/owner">Owner portal</a>
+        <a href={ownerPortalHref}>Owner portal</a>
       </nav>
       <a className={`mcp-indicator ${status?.supported ? "is-live" : ""}`} href="/#agent-access" title={status?.errors.join("\n") || undefined}>
         <span aria-hidden="true" />
@@ -253,7 +256,7 @@ function Landing({ status }: { status: WebMCPStatus | null }) {
 
 function EvidenceCards({ compact = false }: { compact?: boolean }) {
   return <div className={compact ? "evidence-list compact" : "evidence-list"}>
-    {EVIDENCE.map((card) => <a href={card.canonicalPath} className="evidence-card" data-topic={card.topic} key={card.id} aria-label={`Open ${card.topic} source card`}>
+    {EVIDENCE.map((card) => <a href={card.canonicalPath} target="_blank" rel="noreferrer" className="evidence-card" data-topic={card.topic} key={card.id} aria-label={`Open ${card.topic} source card`}>
       <span className="evidence-icon"><EvidenceIcon topic={card.topic} /></span>
       <span className="evidence-copy"><b>{titleCase(card.topic)}</b>{!compact && <p>{card.claim}</p>}<small><i>{card.evidenceType.replaceAll("_", " ")}</i><i>Refreshed {new Date(card.refreshedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</i><i>Synthetic source</i></small></span>
       <span className="evidence-arrow" aria-hidden="true">↗</span>
@@ -425,7 +428,7 @@ function OfferCard({ offer, latest }: { offer: ServiceOffer; latest: boolean }) 
     <header><div><span>OFFER VERSION</span><strong>V{offer.version}</strong></div>{latest && <em>LATEST SENT</em>}<b>{money(offer.totalCents)}</b></header>
     <dl><div><dt>Arrival</dt><dd>{offer.arrivalWindow}</dd></div><div><dt>Deposit</dt><dd>{money(offer.depositCents)}</dd></div><div><dt>Warranty</dt><dd>{offer.warrantyDays} days</dd></div><div><dt>Expires</dt><dd>{shortTime(offer.expiresAt)}</dd></div></dl>
     <div className="scope-grid"><div><span>Included</span>{offer.includedScope.map((item) => <p key={item}>+ {item}</p>)}</div><div><span>Excluded</span>{offer.exclusions.map((item) => <p key={item}>− {item}</p>)}</div></div>
-    <a className="offer-context-link" href="/demo/operations#market">Inspect sourced price context + delivery plan →</a>
+    <a className="offer-context-link" href="/demo/operations#market" target="_blank" rel="noreferrer">Inspect sourced price context + delivery plan →</a>
   </article>;
 }
 
