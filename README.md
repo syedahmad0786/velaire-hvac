@@ -8,6 +8,8 @@ The synthetic HVAC demo tells one complete story:
 
 ## Try it with ChatGPT
 
+For the exact two-chat screen setup, natural-language prompts, word-for-word narration, expected results, and recovery branches, use [`DEMO-RUNBOOK.md`](DEMO-RUNBOOK.md).
+
 1. In customer ChatGPT chat A, open `/demo/customer` and ask naturally: “My AC is blowing warm air in 60614, I can spend up to $180, and I need help today. Can Velaire help? Show me the evidence before opening a synthetic case.”
 2. Copy the private owner invite shown after creation and open it in owner ChatGPT chat B.
 3. Let the owner agent stage a reply or offer, then let the owner press the visible **Send** control.

@@ -156,73 +156,7 @@ Return to Agent ops and show the success/error codes and p95. “Agents do the c
 
 ## Recording control sheet
 
-### Window layout
-
-- Unrecorded monitor: this Codex task plus the teleprompter text below.
-- Recorded monitor: Velaire in Chrome occupies the right 72% of the screen.
-- Customer ChatGPT occupies the upper-left 28%; owner ChatGPT occupies the lower-left 28%.
-- Keep the Chrome address bar out of frame whenever a private owner/customer capability URL is open. The query token is a bearer capability and must not appear in the video.
-- Use 1920×1080 capture, 100% browser zoom, large chat text, and no desktop notifications.
-
-### Natural-language chat sequence
-
-Customer chat, opening request:
-
-```text
-My AC is blowing warm air in 60614. I need help today, preferably from 2 to 4 PM, and my ceiling is $180. I do not want a surprise travel fee, and I must approve any added work. First check whether Velaire can help and show me the pricing, availability, and warranty evidence. Then open a synthetic service request using Lincoln Park, Chicago, IL 60614 as my confirmed synthetic location. Tell me the case code, give me the private page the owner should use, and show me the likely drive-time range and map routes. Do not book or approve anything for me.
-```
-
-Owner chat, after opening the private owner page:
-
-```text
-Act as the owner assistant for the service request on this page. Read what the customer needs. Prepare a short acknowledgement and then a $195 offer for today from 2 to 4 PM with a $49 deposit. Include the diagnostic, labour, and written findings; exclude parts and refrigerant; include a 30-day workmanship warranty. Stop and ask me to press every visible Send control. After I send the offer, keep checking briefly for the customer's reply. Never send or accept anything for me.
-```
-
-Customer chat, after the owner human sends:
-
-```text
-Has the owner replied? Summarize the offer and show me the visual case history. Also show the driving plan to my confirmed location and clearly separate the planning estimate from live traffic. Then counter at $175 with the same 2-to-4 PM window and no after-hours surcharge. Keep checking briefly for the owner's response, but do not accept anything for me.
-```
-
-Owner chat, after the customer counters:
-
-```text
-Has the customer replied? Summarize the counter, then prepare a revised $175 offer that keeps the 2-to-4 PM window and $49 deposit, excludes parts and refrigerant, and explicitly adds no after-hours surcharge. Ask me to review and send it. Do not send it yourself.
-```
-
-Customer chat, booking boundary:
-
-```text
-Check for the revision, compare it with the first offer, and get the latest offer ready for booking. Stop before approval. After I confirm on the website, show me the complete accepted receipt.
-```
-
-Optional owner/customer changed-work close:
-
-```text
-Owner: prepare a $145 capacitor-replacement change because a weak capacitor was found. Make clear that it adds about 30 minutes. Ask me to send it; do not send it yourself.
-
-Customer: compare the changed-work request with my accepted receipt. Tell me the new total, whether the part was originally included, and what still needs my approval. Do not accept it.
-```
-
-### Teleprompter voiceover
-
-“Finding an HVAC company is easy. Proving what was offered, accepted, and later changed is harder. Velaire makes one service agreement readable to the customer, the owner, and their separate AI agents.
-
-I am speaking normally—there are no tool names in my request. The customer agent decides which page capabilities it needs. It checks fit, reads provenance-bearing source cards, opens a bounded case, and returns a transparent route plan. The map links are real; the travel band is explicitly synthetic and does not pretend to use traffic or technician GPS.
-
-The owner is in a separate chat with a separate capability. Its agent can prepare an offer, but the customer sees nothing until the owner presses Send. That visible action creates a new shared revision.
-
-The customer agent retrieves the offer, compares exact terms, and sends a counter. The owner agent sees that revision, prepares a better offer, and again waits for the human owner to send it.
-
-Now the agent can prepare the latest offer, but it cannot approve it. The customer confirms the exact version on the website, creating an immutable receipt.
-
-When the owner proposes extra work, Velaire compares it with that receipt—not a mutable screen. The part was excluded, the total becomes $320, and the customer still controls the decision.
-
-Behind the scenes, the observability board records tool, route, result, and latency without logging private inputs or outputs. Agents do the checking. Humans make the commitments. Every important promise has a visible receipt.”
-
-### Who controls what
-
-You must arrange the desktop windows, start/stop the recorder, and paste/send messages in the two real ChatGPT accounts. Those are OS-level and account-bound actions. Codex can drive the Velaire browser walkthrough once that browser tab is explicitly attached, but the safest recording is rehearsed copy/paste from this sheet so timing and private capability URLs stay under your control.
+Use the canonical [`DEMO-RUNBOOK.md`](DEMO-RUNBOOK.md) for the exact two-chat setup, natural-language prompts, word-for-word narration, expected results, and recovery branches.
 
 ## Recording checklist
 
