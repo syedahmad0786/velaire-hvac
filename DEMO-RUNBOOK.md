@@ -1,331 +1,230 @@
-# Velaire — Three-Minute Demo Runbook
+# Velaire — One-Take Three-Minute Demo Runbook
 
-This is the canonical recording and editing sheet. Everything in brackets is an operator cue and must not be spoken.
+This is the canonical recording sheet for one continuous master take. Everything in square brackets is an operator instruction and must not be spoken.
 
-Target final length: **2:45–2:58**. Record the workflow as short clips, remove model-processing silence, and preserve the real event order.
+Target spoken length: **2:40–2:50**. Record the complete workflow once, in its real order. If live model processing pushes the exported video past three minutes, remove only dead waiting silence; do not rearrange or restage the workflow.
 
-Use an optional wait line only while a response is visibly running. Keep no more than four of them in the final edit; remove every unused wait line first.
+The prompts deliberately contain no WebMCP tool names. Choosing the correct site capability from ordinary language is part of the demonstration.
 
-## The one-line product definition
+## 1. Prepare the screen before recording
 
-> We built a WebMCP operating layer for service-business websites. Velaire Heating & Air is the HVAC demonstration.
+1. Put this runbook and the OBS controls on the unrecorded monitor.
+2. On the recorded monitor, open two separate ChatGPT desktop windows:
+   - `CUSTOMER — Velaire demo`;
+   - `OWNER — Velaire demo`.
+3. Maximize both windows and keep CUSTOMER in front. Switch roles during the take with `Alt+Tab`.
+4. In each ChatGPT window, keep chat at roughly 32% width and the built-in browser at roughly 68%.
+5. Leave both built-in browsers on a blank tab. The customer must begin from the first prompt, not from a manually opened website.
+6. Collapse conversation history, hide the Windows taskbar, turn on Do Not Disturb, and remove the webcam overlay.
+7. Place a permanent OBS privacy mask over the browser address row. The private owner capability token must never be readable in the recording.
+8. Use only `Lincoln Park, Chicago, IL 60614`. Do not enter a real address, phone number, email, or payment information.
+9. Reset the fictional demo before recording so no previous active case remains.
+10. Keep this page open on the second monitor and copy each prompt only when its numbered step arrives.
 
-The product is not an HVAC-only chatbot. It is a reusable pattern that lets a customer's agent and a business owner's agent discover, verify, negotiate, and audit one service agreement while the humans retain every commitment.
+## 2. Record one continuous take
 
-## 1. Screenshot verdict and final screen arrangement
+Start OBS. Do not pause the recording. Do not begin with a title card.
 
-The supplied two-window setup is correct for establishing that two independent agents exist:
+### Step 1 — Begin in the CUSTOMER chat
 
-- left: `CUSTOMER — Velaire demo`;
-- right: `OWNER — Velaire demo`;
-- both use GPT-5.6 Sol High;
-- each has its own built-in browser.
-
-Make these changes before recording:
-
-1. Do not open on two blank browsers. Start with the customer request already being pasted. Use the side-by-side view only after the private owner page is connected, and optionally for the closing shot.
-2. Maximize the active customer or owner window for every interaction clip so the chat and website remain readable after YouTube compression.
-3. Auto-hide the Windows taskbar.
-4. Remove the webcam overlay during workflow clips. If you want it, use it only for the first and last sentence at no more than 12% of the frame.
-5. Collapse the ChatGPT history sidebar.
-6. Keep the active chat at about 32% width and its built-in browser at about 68%.
-7. Crop the browser address field whenever a private URL is loaded. Never show `access=`.
-8. Keep the `Fictional demo` label visible whenever possible.
-
-Use the second, unrecorded monitor for this runbook, the recorder controls, and the next paste prompt.
-
-## 2. How the URLs actually work
-
-You are correct that the customer should begin from a prompt. You do **not** need to type the public customer URL into the browser before the video.
-
-The first customer prompt tells ChatGPT to open the public Velaire website. Once the page is open in ChatGPT's built-in browser, ChatGPT discovers the page's WebMCP capabilities and chooses among them from the customer's natural request.
-
-The owner is different. A new service case creates a private owner invitation. That capability cannot be guessed from the public site. Open it off-camera in the owner chat's built-in browser, then record the owner interaction. Do not paste that private invitation into the visible chat history.
-
-The agents do not call one another. Each role page reads and writes the same durable, revisioned service case.
-
-## 3. Before recording
-
-- Leave the customer and owner chats open exactly as shown in the screenshot.
-- Leave both built-in browsers on a blank tab.
-- Confirm both chats use GPT-5.6 Sol or Terra.
-- Turn on Do Not Disturb.
-- Close email, Slack, WhatsApp, password managers, and personal tabs.
-- Use only the synthetic area `Lincoln Park, Chicago, IL 60614`.
-- Do not use a real address, phone number, email, or payment information.
-- Prepare one OBS scene for both chats and one readable full-screen scene for each role.
-
-## 4. Exact clip plan, paste prompts, and narration
-
-The prompts intentionally contain no WebMCP tool names. Selecting the correct capability from natural intent is part of the proof.
-
-### Clip 1 — Customer discovers the business immediately
-
-**Final position:** 00:00–00:30
-
-**[ACTION: Start on the maximized CUSTOMER window and immediately paste customer prompt C1. Do not use a title card or show both blank browsers.]**
+**[ACTION: Paste and send CUSTOMER PROMPT 1.]**
 
 ```text
-Open https://velaire-hvac.vercel.app. My AC is blowing warm air in 60614 and I need help today under $180. Can this business help? Show me its pricing, availability, and warranty evidence. Do not book anything.
+Open https://velaire-hvac.vercel.app. My AC is blowing warm air in 60614, I need help today between 2 and 4 PM, and I can spend up to $180. Check whether Velaire is a fit and show me its pricing, availability, and warranty evidence. If it is, open a synthetic request for Lincoln Park, Chicago. No surprise travel fee, and ask me before any added work. You may save only that neighborhood-level location to this synthetic case. Do not book anything.
 ```
 
-**SAY WHILE CHATGPT OPENS THE PAGE:**
+**SAY:**
 
-> Booking a home service seems simple—until the price changes, the schedule moves, or nobody remembers what was agreed. We built an interaction layer for service websites where the customer's AI and the owner's AI can work through one request, while people control the commitment. Velaire Heating & Air is our HVAC example.
+> Booking a home service seems simple—until the price changes, the schedule moves, or nobody remembers what was agreed. We built an interaction layer where a customer's AI and an owner's AI can work through one service request, while people control the commitment. Velaire is our HVAC example.
 >
-> I'll start like any customer: my AC is blowing warm air, I need help today, and I have a budget. I don't name a tool. ChatGPT opens Velaire, discovers its WebMCP capabilities, and returns service fit, pricing, availability, and warranty evidence. Everything is visibly synthetic for this demo.
+> I'll start like any customer: my AC is blowing warm air, I need help today, and I have a budget. I don't name a tool; I explain the problem. ChatGPT opens Velaire, discovers its WebMCP capabilities, checks service fit and evidence, and opens the request. Everything here is visibly synthetic.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[OPTIONAL—say only if ChatGPT is still working:]**
 
-> It's checking now, so I'll give it a second.
+> It's working through that request now, so I'll give it a second.
 
-**[EDIT: Remove only silent model-processing time. Hold for one second on the returned evidence.]**
+**[ACTION: When the result appears, show the evidence briefly, then show the new case, `Awaiting Provider`, revision 1, and the case code.]**
 
-### Clip 2 — Customer opens the shared request
+**SAY:**
 
-**Final position:** 00:30–00:48
+> Now there is one versioned case, without payment or personal contact information.
 
-**[ACTION: Paste customer prompt C2.]**
+### Step 2 — Start the customer wait and hand the case to the OWNER
+
+**[ACTION: On the customer page, click `Copy owner invite`. Do not paste it into either visible chat. Then paste and send CUSTOMER PROMPT 2.]**
 
 ```text
-Create a synthetic service request for today from 2 to 4 PM using Lincoln Park, Chicago as my confirmed service area. No surprise travel fee, and ask me before any added work. Do not book anything.
+Wait for the owner's reply on this case and summarize anything new. Keep checking for up to two minutes, then stop and tell me if no reply arrives. Do not approve or book anything.
 ```
 
 **SAY:**
 
-> That's enough to continue. I ask it to open a request, and Velaire creates a shared, versioned case with what the owner needs—but no payment or contact information—plus a private owner invitation.
+> Now I ask the customer agent to wait in short, cancellable rounds. While it checks, I'll move to the owner.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[ACTION: Press `Alt+Tab` to OWNER. Click the built-in browser address field, paste the private invitation, press Enter, and wait for the matching case code. The permanent privacy mask must cover the URL.]**
 
-> That shared case is being created now.
+**SAY:**
 
-**[ACTION: Show `Awaiting Provider`, revision 1, and the case code. End this clip before copying the private invitation.]**
+> This private invitation brings the same case into a completely separate owner session. In production, an authenticated business notification would deliver it; here, I'm handing it over directly.
 
-### Private handoff — never include this in the video
+### Step 3 — Prepare and send the first OWNER offer
 
-1. Copy the owner invitation from the customer page.
-2. Open it directly in the OWNER chat's built-in browser.
-3. Confirm the owner page shows the same case code and revision 1.
-4. Crop or hide the browser address field.
-
-### Clip 3 — Customer waits while the owner responds
-
-**Final position:** 00:48–00:56
-
-**[ACTION: Return to CUSTOMER and paste C3.]**
+**[ACTION: Paste and send OWNER PROMPT 1.]**
 
 ```text
-Wait briefly for the owner’s first reply and summarize it when it arrives. Stop after two minutes and tell me honestly if nothing changes. Do not approve anything.
+Read this customer's request and prepare a $195 offer for today from 2 to 4 PM with a $49 deposit. Include the cooling diagnostic, labor, and written findings. Exclude parts and refrigerant, include a 30-day workmanship warranty, and stop before sending it.
 ```
 
 **SAY:**
 
-> Now ChatGPT waits for a reply in short, cancellable rounds. It won't pretend to wait forever. While it checks, I'll move to the owner.
+> This separate owner ChatGPT reads the request and prepares a $195 offer. The customer sees nothing yet: the draft is private, and the agent can't send it.
 
-**OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
-
-> While it checks, I'll switch to the owner.
-
-**[ACTION: Once waiting begins, cut to the maximized OWNER window.]**
-
-### Clip 4 — Owner agent stages; owner human sends
-
-**Final position:** 00:56–01:18
-
-**[ACTION: First show the connected CUSTOMER and OWNER windows side by side for two seconds. Then maximize OWNER and paste owner prompt O1.]**
-
-```text
-Read the customer’s request. Prepare a $195 offer for today from 2 to 4 PM with a $49 deposit. Include the cooling diagnostic, labour, and written findings. Exclude parts and refrigerant, and include a 30-day workmanship warranty. Stop before sending it.
-```
-
-**SAY:**
-
-> This is a separate ChatGPT session on the private owner page. It reads the request and prepares a $195 offer. But the customer sees nothing yet: the draft is private, and the agent can't send it.
-
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[OPTIONAL—say only if the draft is still being prepared:]**
 
 > The offer's coming together, but nothing has been sent.
 
-**[ACTION: Hold on `PRIVATE DRAFT` and `AWAITING HUMAN`. Click `Human: send offer`.]**
+**[ACTION: Show `PRIVATE DRAFT` and `AWAITING HUMAN`. Review the terms, then click `Human: send offer`.]**
 
 **SAY AS YOU CLICK:**
 
-> I'm acting as the owner, so I review the terms and press Send. That publishes the offer and creates the next revision.
+> I review the terms and press Send. That human action publishes the offer and creates the next revision.
 
-**OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
+### Step 4 — Receive the offer and send the CUSTOMER counter
+
+**[ACTION: Press `Alt+Tab` to CUSTOMER. If the waiting response has not finished, use the optional line below.]**
+
+**[OPTIONAL—say only while waiting:]**
 
 > I'll give the customer chat a second to catch up.
 
-### Clip 5 — Customer receives, visualizes, routes, and counters
-
-**Final position:** 01:18–01:42
-
-**[ACTION: Cut back to CUSTOMER. The waiting response should now contain the $195 offer. Paste C4.]**
+**[ACTION: When the $195 offer appears in the customer chat, paste and send CUSTOMER PROMPT 3.]**
 
 ```text
-Show me the current case history and the driving plan to my confirmed synthetic area. Clearly separate any planning estimate from live traffic. Then counter at $175 with the same 2-to-4 PM window and no after-hours surcharge. Do not accept anything.
+Show me what the owner offered, the case history, and the driving plan to Lincoln Park. Clearly separate planning estimates from live traffic. Then counter at $175 for the same 2-to-4 PM window with no after-hours surcharge. Do not accept anything.
 ```
 
 **SAY:**
 
-> And there it is, back in the customer's ChatGPT. In one ordinary request, I ask for the history, a driving plan, and a $175 counter. The map link is real, but the travel range is explicitly synthetic—not live traffic or technician GPS. The customer can negotiate without accidentally accepting.
+> And there it is, back in the customer's own ChatGPT. In one ordinary request, I ask for the history, a driving plan, and a $175 counter. The map link is real, but the travel range is explicitly synthetic—not live traffic or technician GPS. The customer can negotiate without accidentally accepting.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[ACTION: Briefly show the route card and visual case history. Do not open the external map yet.]**
 
-> The counter is going onto the shared case now.
+### Step 5 — Send the revised OWNER offer
 
-**[ACTION: Briefly show the visual history and route card. Do not open the map yet.]**
-
-### Clip 6 — Owner receives the counter and sends revision two
-
-**Final position:** 01:42–01:59
-
-**[ACTION: Cut to OWNER and paste O2.]**
+**[ACTION: Press `Alt+Tab` to OWNER. Paste and send OWNER PROMPT 2.]**
 
 ```text
-Check the customer’s latest reply. If they countered, prepare a revised $175 offer with the same 2-to-4 PM window and $49 deposit. Keep parts and refrigerant excluded, and add no after-hours surcharge. Stop before sending it.
+Read the customer's latest response. If the $175 counter is there, prepare a revised $175 offer for 2 to 4 PM with the same $49 deposit. Keep parts and refrigerant excluded, add no after-hours surcharge, and stop before sending it.
 ```
 
 **SAY:**
 
-> Back with the owner, the counter is already on the same case. The agent prepares the revision; the owner sends it.
+> Back with the owner, the counter is already attached to the same case. The agent prepares the revision and, once again, the owner—not the AI—sends it.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[ACTION: Show the $175 private draft, then click `Human: send offer`.]**
 
-> It's preparing the new terms now.
+### Step 6 — Compare and confirm the agreement as the CUSTOMER
 
-**[ACTION: Show the $175 private draft. Click `Human: send offer`.]**
-
-### Clip 7 — Compare, prepare, and confirm the exact agreement
-
-**Final position:** 01:59–02:22
-
-**[ACTION: Cut to CUSTOMER and paste C5.]**
+**[ACTION: Press `Alt+Tab` to CUSTOMER. Paste and send CUSTOMER PROMPT 4.]**
 
 ```text
-Compare the first and revised offers. Prepare the latest one for booking, but stop before approval.
+Compare the original and revised offers. If the latest one is $175 for 2 to 4 PM, with a $49 deposit, no after-hours surcharge, and parts and refrigerant excluded, prepare that version for booking—but stop before approval.
 ```
 
 **SAY:**
 
-> ChatGPT compares the stored offers: $20 less, the same window and deposit, and no after-hours surcharge. It can prepare version two, but it can't accept it. I confirm the terms, and Velaire locks them into an immutable demo receipt. No payment is taken, and no real appointment is booked.
+> ChatGPT compares the stored offers: $20 less, the same time and deposit, and no after-hours surcharge. It can prepare version two, but it can't accept it.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[ACTION: Show `AWAITING HUMAN`. Review the displayed terms and click `I confirm these terms`.]**
 
-> There's the receipt; the accepted promise is now fixed.
+**SAY AS YOU CLICK:**
 
-**[ACTION: Show the comparison and `AWAITING HUMAN`. Click `I confirm these terms`. Then paste C6.]**
+> I confirm the terms myself, and Velaire locks them into an immutable demo receipt. No payment is taken, and no real appointment is booked.
 
-```text
-Show me the complete accepted receipt. Do not change the case.
-```
+### Step 7 — Propose changed work as the OWNER
 
-**[ACTION: Hold for one second on the $175 receipt.]**
-
-### Clip 8 — Changed work is compared with the accepted promise
-
-**Final position:** 02:22–02:46
-
-**[ACTION: Cut to OWNER and paste O3.]**
+**[ACTION: Press `Alt+Tab` to OWNER. Paste and send OWNER PROMPT 3.]**
 
 ```text
-Read the confirmed booking. Prepare a $145 changed-work request for a capacitor part replacement because a weak capacitor was found. State that it adds about 30 minutes. Stop before sending it.
+Read the confirmed booking. Prepare a $145 change order to replace a weak capacitor, adding about 30 minutes. Keep it separate from the accepted agreement, and stop before sending it.
 ```
 
 **SAY:**
 
 > Now the job changes. The owner finds a weak capacitor and proposes another $145. Velaire doesn't rewrite the accepted deal; it creates a separate change order.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+**[ACTION: Show the private change-order draft, then click `Human: send change order`.]**
 
-> I'll give the customer side a second to catch up.
+### Step 8 — Compare the change and close in the CUSTOMER view
 
-**[ACTION: Show the private changed-work draft. Click `Human: send change order`. Cut to CUSTOMER and paste C7.]**
+**[ACTION: Press `Alt+Tab` to CUSTOMER. Paste and send CUSTOMER PROMPT 5.]**
 
 ```text
-Compare the changed-work request with what I accepted. Tell me the proposed total, whether this part was included before, and what still requires my decision. Show the current visual history. Do not accept or reject the change.
+Compare the proposed change with my accepted receipt. Tell me the new total, whether the capacitor was included before, how the schedule changes, and what still needs my approval. Show me the updated case history. Do not accept or reject the change.
 ```
 
 **SAY:**
 
-> The customer agent checks that against the receipt: $175 plus $145 is $320. Parts were excluded, the visit is 30 minutes longer, and the customer still decides.
+> The customer agent checks the proposal against the accepted receipt: $175 plus $145 is $320. Parts were excluded, the visit is about 30 minutes longer, and the customer still decides.
 
-**OPTIONAL WAIT LINE — 2–3 SECONDS:**
-
-> Nothing changes until the customer makes that decision.
-
-### Clip 9 — Graph, map, and closing statement
-
-**Final position:** 02:46–02:57
-
-**[ACTION: Open `Open case graph`; hold for two seconds. Open `Google driving route`; hold for two seconds. Return to the pending changed-work card. Use the side-by-side agent scene for the final sentence if time allows.]**
+**[ACTION: Show the comparison. Click `Open case graph`; hold briefly. Return and click `Google driving route`; hold briefly. Return to the pending change order for the last sentence.]**
 
 **SAY:**
 
-> We can open the whole agreement as a graph and hand the route to a real map provider. HVAC is only the example. This is a reusable agreement layer for service businesses: AI handles coordination and comparison; people control every promise.
+> We can open the agreement as a graph and hand the route to a real map provider. HVAC is only the example. This is a reusable agreement layer for service businesses: AI handles discovery, coordination, and comparison; people control every promise.
 
-**[ACTION: Stop. Do not add an improvised closing.]**
+**[ACTION: Stop speaking. Hold for one second, then stop OBS.]**
 
-## 5. Expected proof
+## 3. One-take recovery lines
 
-| Moment | Expected result | Boundary proved |
+Use these only if the stated condition occurs. They are not part of the normal narration.
+
+### The bounded wait ends before the owner reply appears
+
+**SAY:**
+
+> That wait ended cleanly, so I'm asking the same case for anything newer.
+
+```text
+Check this same case again now and summarize only what changed since the last revision. Do not approve anything.
+```
+
+### A stale revision is reported
+
+**SAY:**
+
+> The case changed while the agent was working, so it's re-reading the current version before trying again.
+
+```text
+Read the current case revision, then repeat my last request once using that revision. Stop before any human approval.
+```
+
+### ChatGPT cannot discover the page capabilities
+
+End the recording and restart the take. Reopen the correct role page inside that chat's built-in browser and confirm the site displays `AI assistance ready`. Do not rescue the demonstration by naming internal tool functions.
+
+### The owner page does not show the same case
+
+End the recording and restart. Do not continue on `/demo/owner` without the complete private invitation, and never expose or narrate its `access=` value.
+
+## 4. Expected evidence during the take
+
+| Moment | What must appear | What it proves |
 |---|---|---|
-| Service discovery | Matching service plus pricing, availability, and warranty evidence | Read-only; synthetic sources identified |
-| New request | `Awaiting Provider`, revision 1 | No booking or payment |
-| Owner stages offer | `$195`, `PRIVATE DRAFT`, `AWAITING HUMAN` | Customer cannot see the draft |
-| Owner sends | Offer V1, revision 2 | Only the human publishes |
-| Customer counters | `$175`, revision 3 | No offer accepted |
-| Owner sends revision | Offer V2, revision 4 | Separate sent version preserved |
-| Booking preparation | `AWAITING HUMAN`, revision 5 | Agent cannot confirm or charge |
-| Customer confirmation | `Booked`, revision 6, `RCPT-…` | Human creates immutable receipt |
-| Changed work | `+$145`, then `Change Pending`, revision 7 | Receipt remains unchanged |
-| Comparison | `$175 + $145 = $320`; parts excluded; decision required | Agent cannot accept or reject |
-| Route | West Town to Lincoln Park; 15–30 minute synthetic band | No live traffic, GPS, or arrival promise |
+| Customer discovery | Service fit plus pricing, availability, and warranty evidence | Natural intent selected read capabilities |
+| Case creation | `Awaiting Provider`, revision 1, case code | No booking or payment occurred |
+| Owner draft | `$195`, `PRIVATE DRAFT`, `AWAITING HUMAN` | The agent cannot publish terms |
+| Owner send | Offer V1 and a new revision | A human published the offer |
+| Customer counter | `$175` counter and route card | Negotiation did not accept an offer |
+| Revised offer | Offer V2 at `$175` | Prior terms remain comparable |
+| Booking preparation | `AWAITING HUMAN` | The agent cannot approve or charge |
+| Customer confirmation | `Booked` and `RCPT-…` | Accepted terms became a receipt |
+| Changed work | Separate `+$145` change order | The original agreement was not rewritten |
+| Final comparison | `$175 + $145 = $320`; parts excluded; decision required | The customer retains the final decision |
+| Graph and route | Version history plus external map handoff | The agreement is inspectable and limitations remain explicit |
 
-## 6. Exact on-screen captions
+## 5. Submission boundary
 
-Use only these short overlays; do not add explanatory paragraphs to the video.
+The public site is https://velaire-hvac.vercel.app. All businesses, people, reviews, prices, credentials, bookings, receipts, and service records shown in the demonstration are fictional. The route link opens a real map provider, but the travel range is a planning fixture rather than live traffic, geocoding, technician GPS, or an arrival guarantee.
 
-| Clip | Overlay |
-|---|---|
-| Customer discovery | `A NORMAL REQUEST → STRUCTURED SITE ACTIONS` |
-| Two-role reveal | `TWO AGENTS · ONE VERSIONED CASE` |
-| Private owner draft | `AGENT PREPARES · HUMAN SENDS` |
-| Booking gate | `NO AGENT APPROVAL · NO PAYMENT` |
-| Changed work | `ACCEPTED $175 + PROPOSED $145 = $320` |
-| Close | `EVERY PROMISE HAS A VERSION + RECEIPT` |
-
-## 7. Recovery prompts
-
-Use these only if required.
-
-### Wait ended before a reply
-
-```text
-Check this same case again now. Summarize only what changed since the last revision.
-```
-
-### Stale revision
-
-```text
-Read the current case revision first, then repeat my last requested action once. Stop before any human approval.
-```
-
-### ChatGPT cannot use the site
-
-Stop the clip. Reopen the correct role page inside that chat's built-in browser, confirm `AI assistance ready`, and retry. Do not solve missing page capabilities by naming an implementation tool in the prompt.
-
-### Private draft does not appear immediately
-
-Wait two seconds. If necessary, refresh the role page once while preserving its complete private URL.
-
-## 8. Unattended judge path
-
-You do not need to be online when judges test Velaire.
-
-- Self-guided route: https://velaire-hvac.vercel.app/demo/customer?judge=1
-- The visible judge simulator lets one judge exercise the owner Send gates without waiting for you.
-- For the full proof, a judge can create a case, open its private owner invitation in a second ChatGPT chat, and play both human roles.
-- There is no always-on owner agent, Slack bridge, or unsolicited ChatGPT wake-up in this submission. A durable case can be checked again later.
-
-Official WebMCP behavior reference: https://learn.chatgpt.com/docs/webmcp
+For unattended judging, use https://velaire-hvac.vercel.app/demo/customer?judge=1. The visible judge simulator can exercise the owner Send gates without requiring the creator to be online.
