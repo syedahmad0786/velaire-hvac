@@ -101,5 +101,12 @@ describe("shared two-chat case service", () => {
     });
     expect(waited.body.result.code).toBe("OK");
     expect(waited.body.state.cases[0].offers[0].totalCents).toBe(19500);
+
+    const timedOut = await call(db, {
+      action: "wait", caseId, accessToken: customer, role: "customer", afterRevision: 2, maxWaitSeconds: 1,
+    });
+    expect(timedOut.body.result.code).toBe("STILL_WAITING");
+    expect(timedOut.body.result.data.waitCompleted).toBe(true);
+    expect(timedOut.body.result.nextActions).toEqual(["Return control to the user. Check the case again only when the user asks."]);
   });
 });

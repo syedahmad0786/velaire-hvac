@@ -131,7 +131,9 @@ function AgentGuide({ status, serviceCase, compact = false, role = "customer" }:
     ? role === "owner"
       ? `Use the Velaire page already open. Check this owner case, tell me what the customer needs, and prepare the next appropriate reply or offer for my review. Do not navigate or reload. I will press the visible Send button myself.`
       : `Use the Velaire page already open. Read my service case, tell me what changed, and show its current terms and visual summary. Do not navigate or reload. Stop before every booking, payment, or changed-work decision.`
-    : STARTER_PROMPT;
+    : role === "owner"
+      ? "Use the private Velaire owner page already open. Check for the authorized customer case and tell me what needs my attention. Do not navigate or reload."
+      : STARTER_PROMPT;
   const connected = status?.supported === true;
   const headline = status === null
     ? "Checking whether your AI agent can use this page…"
@@ -575,10 +577,11 @@ function CustomerPage({ status }: { status: WebMCPStatus | null }) {
   const serviceCase = selected ? state.cases.find((item) => item.id === selected) : undefined;
   const session = promiseDiffStore.getSharedSession();
   const shared = session?.role === "customer" && session.caseId === selected;
+  const loadingSharedCase = Boolean(shared && !serviceCase);
   return <main className="app-page customer-page">
     <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm(shared ? "Leave this shared fictional case on this device? The durable demo record will remain available through its private links." : "Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer"); } }}>Reset demo</button></div>
     <AgentGuide status={status} serviceCase={serviceCase} compact />
-    {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={!shared && params.get("judge") === "1"} /> : <Storefront />}
+    {serviceCase ? <CustomerCase serviceCase={serviceCase} judge={!shared && params.get("judge") === "1"} /> : loadingSharedCase ? <div className="empty-state"><span>LOADING PRIVATE CASE</span><h2>Checking the shared customer record…</h2></div> : <Storefront />}
   </main>;
 }
 
@@ -597,7 +600,7 @@ function OwnerPage({ status }: { status: WebMCPStatus | null }) {
     {selected ? <div className="owner-layout">
       <aside className="case-queue"><h2>Cases</h2>{accessibleCases.map((item) => <a className="selected" href={caseHref("owner", item.id)} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
       <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={caseVisuals(selected, window.location.origin).route?.directions.googleMapsUrl ?? caseVisuals(selected, window.location.origin).location.googleMapsUrl} target="_blank" rel="noreferrer">Open driving route ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
-    </div> : <div className="empty-state"><span>NO CAPABILITY</span><h2>Open the private owner invite from the customer case.</h2><p>A case cannot be discovered by ID alone; the owner URL carries a separate capability token.</p><a className="button primary" href="/demo/customer">Open customer room</a></div>}
+    </div> : authorizedCaseId && requested === authorizedCaseId ? <div className="empty-state"><span>LOADING PRIVATE CASE</span><h2>Checking the shared owner record…</h2></div> : <div className="empty-state"><span>NO CAPABILITY</span><h2>Open the private owner invite from the customer case.</h2><p>A case cannot be discovered by ID alone; the owner URL carries a separate capability token.</p><a className="button primary" href="/demo/customer">Open customer room</a></div>}
   </main>;
 }
 

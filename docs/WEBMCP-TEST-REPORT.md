@@ -58,7 +58,7 @@ These records are intentionally synthetic. Earlier agreement records were browse
 | `velaire_get_case_visuals` | Read the shared case at revision 2 | `OK`; returned graph nodes/edges, Mermaid, canonical graph URL, totals, and two map-search URLs. |
 | `velaire_plan_service_route` | Plan from the fictional West Town dispatch area to customer-confirmed Lincoln Park at a fixed departure time | `OK`; returned a 15–30 minute synthetic planning band, calculated arrival range, service-window authority, and direct Google/Apple driving URLs. It explicitly reported no live traffic, GPS, geocoding, or arrival promise. |
 | `velaire_wait_for_owner_reply` | Owner sent a visible reply within the wait window | `OK`; the pending call resolved on the newer owner event. |
-| `velaire_wait_for_owner_reply` | No event in one 15-second-or-shorter round | `STILL_WAITING`; returned a cursor and changed nothing, allowing bounded re-polling. |
+| `velaire_wait_for_owner_reply` | No event in one 15-second-or-shorter round | `STILL_WAITING`; returned a cursor, changed nothing, and explicitly returned control without automatic re-polling. |
 | `velaire_submit_case_message` | Stale revision, then current revision counteroffer | `STALE_REVISION` with no mutation, followed by `OK` for the valid counter. |
 | `velaire_compare_offer_versions` | Offer V1 at $195 versus V2 at $175 | `OK`; reported the $20 decrease and term-level differences. |
 | `velaire_prepare_booking` | Superseded V1, then current V2 | V1 rejected; V2 returned `AWAITING_HUMAN`. The visible customer control created the receipt. |

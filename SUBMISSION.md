@@ -35,7 +35,7 @@ WebMCP is not an added chat widget or a remote MCP server here. The website itse
 - Route isolation prevents customer and owner capabilities from appearing together.
 - Closed JSON Schemas and runtime allowlists reject unknown fields.
 - Every state-changing tool uses an expected revision to reject stale writes.
-- Owner and customer events are retrieved in 15-second cancellable wait rounds, with a cursor for cooperative re-polling up to 120 seconds.
+- Owner and customer events can be retrieved through one cancellable wait of at most 15 seconds. A timeout returns control to the user instead of starting a polling loop.
 - The browser host may end any call; `STILL_WAITING` leaves the durable case recoverable.
 - Emergency phrases such as smoke, sparks, gas smell, fire, or a carbon-monoxide alarm stop ordinary booking.
 - Direct contact identifiers and payment details are excluded. Customer-supplied service-location text requires explicit confirmation and is never presented as geocoded or verified.

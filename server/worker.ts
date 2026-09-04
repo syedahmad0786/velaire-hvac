@@ -270,10 +270,9 @@ async function waitForCase(db: D1Database, body: Record<string, unknown>, signal
       data: {
         serviceCase,
         cursor: serviceCase.revision,
-        nextPollAfterMs: 750,
-        maximumCooperativeWaitSeconds: 120,
+        waitCompleted: true,
       },
-      nextActions: ["Call this wait tool again with afterRevision set to the returned cursor, until 120 seconds total or the user stops."],
+      nextActions: ["Return control to the user. Check the case again only when the user asks."],
     },
     state,
   });
