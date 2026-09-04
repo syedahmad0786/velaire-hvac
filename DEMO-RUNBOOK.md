@@ -4,6 +4,8 @@ This is the canonical recording and editing sheet. Everything in brackets is an 
 
 Target final length: **2:45–2:58**. Record the workflow as short clips, remove model-processing silence, and preserve the real event order.
 
+Use an optional wait line only while a response is visibly running. Keep no more than four of them in the final edit; remove every unused wait line first.
+
 ## The one-line product definition
 
 > We built a WebMCP operating layer for service-business websites. Velaire Heating & Air is the HVAC demonstration.
@@ -71,6 +73,10 @@ Open https://velaire-hvac.vercel.app. My AC is blowing warm air in 60614 and I n
 
 > We built a WebMCP operating layer for service-business websites, demonstrated here through Velaire Heating & Air. I start with a normal customer request and the public business URL. ChatGPT opens the page, discovers its capabilities, and selects the right ones. The answer returns service fit and dated evidence, all clearly marked synthetic.
 
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> While it checks, notice that I never named a tool.
+
 **[EDIT: Remove only silent model-processing time. Hold for one second on the returned evidence.]**
 
 ### Clip 2 — Customer opens the shared request
@@ -86,6 +92,10 @@ Create a synthetic service request for today from 2 to 4 PM using Lincoln Park, 
 **SAY:**
 
 > The second request creates one shared, versioned case. It collects bounded service details—not payment or personal contact data—and creates a separate private invitation for the owner.
+
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> Now we wait for the case and owner invitation.
 
 **[ACTION: Show `Awaiting Provider`, revision 1, and the case code. End this clip before copying the private invitation.]**
 
@@ -110,6 +120,10 @@ Wait briefly for the owner’s first reply and summarize it when it arrives. Sto
 
 > The customer agent waits in short, cancellable rounds. This is deliberately bounded to two minutes; it is not a permanent subscription or background wake-up.
 
+**OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
+
+> While it waits, I am moving to the owner side.
+
 **[ACTION: Once waiting begins, cut to the maximized OWNER window.]**
 
 ### Clip 4 — Owner agent stages; owner human sends
@@ -126,11 +140,19 @@ Read the customer’s request. Prepare a $195 offer for today from 2 to 4 PM wit
 
 > This is a separate owner ChatGPT using the private invitation. Its agent can prepare exact terms, but the draft remains invisible to the customer. Staging does not advance the agreement.
 
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> The agent is preparing; nothing is public yet.
+
 **[ACTION: Hold on `PRIVATE DRAFT` and `AWAITING HUMAN`. Click `Human: send offer`.]**
 
 **SAY AS YOU CLICK:**
 
 > Only this visible owner action publishes the offer and advances the case to revision two.
+
+**OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
+
+> Now we wait for the customer chat to receive it.
 
 ### Clip 5 — Customer receives, visualizes, routes, and counters
 
@@ -145,6 +167,10 @@ Show me the current case history and the driving plan to my confirmed synthetic 
 **SAY:**
 
 > The first customer call receives the owner's revision in its own chat. Velaire also returns a visual case history and route-ready links. The fifteen-to-thirty-minute travel band is synthetic—there is no live traffic, GPS, geocoding, or guaranteed arrival. The customer sends a counter without accepting an offer.
+
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> The counter is being recorded as the next revision.
 
 **[ACTION: Briefly show the visual history and route card. Do not open the map yet.]**
 
@@ -162,6 +188,10 @@ Check the customer’s latest reply. If they countered, prepare a revised $175 o
 
 > The owner agent retrieves the customer's counter from the same durable case. It prepares a revised offer, but again waits for the owner to send it.
 
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> Now we wait for the revised terms to appear.
+
 **[ACTION: Show the $175 private draft. Click `Human: send offer`.]**
 
 ### Clip 7 — Compare, prepare, and confirm the exact agreement
@@ -177,6 +207,10 @@ Compare the first and revised offers. Prepare the latest one for booking, but st
 **SAY:**
 
 > The comparison uses stored terms, not screenshots: twenty dollars less, with the same time and deposit. Preparing returns awaiting human. I confirm the displayed version myself, producing an immutable synthetic receipt without payment or a real appointment.
+
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> The accepted version is now being written to the receipt.
 
 **[ACTION: Show the comparison and `AWAITING HUMAN`. Click `I confirm these terms`. Then paste C6.]**
 
@@ -200,6 +234,10 @@ Read the confirmed booking. Prepare a $145 changed-work request for a capacitor 
 
 > Additional work becomes a separate change order instead of silently rewriting the accepted agreement.
 
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> Now we wait for that change to reach the customer.
+
 **[ACTION: Show the private changed-work draft. Click `Human: send change order`. Cut to CUSTOMER and paste C7.]**
 
 ```text
@@ -209,6 +247,10 @@ Compare the changed-work request with what I accepted. Tell me the proposed tota
 **SAY:**
 
 > Against the receipt, one hundred seventy-five plus one hundred forty-five becomes three hundred twenty dollars. Parts were excluded, thirty minutes are added, and the customer still decides.
+
+**OPTIONAL WAIT LINE — 2–3 SECONDS:**
+
+> The accepted agreement remains unchanged until that decision.
 
 ### Clip 9 — Graph, map, and closing statement
 
