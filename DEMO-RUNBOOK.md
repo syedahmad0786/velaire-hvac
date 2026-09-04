@@ -71,11 +71,13 @@ Open https://velaire-hvac.vercel.app. My AC is blowing warm air in 60614 and I n
 
 **SAY WHILE CHATGPT OPENS THE PAGE:**
 
-> We built a WebMCP operating layer for service-business websites, demonstrated here through Velaire Heating & Air. I start with a normal customer request and the public business URL. ChatGPT opens the page, discovers its capabilities, and selects the right ones. The answer returns service fit and dated evidence, all clearly marked synthetic.
+> Booking a home service seems simple—until the price changes, the schedule moves, or nobody remembers what was agreed. We built an interaction layer for service websites where the customer's AI and the owner's AI can work through one request, while people control the commitment. Velaire Heating & Air is our HVAC example.
+>
+> I'll start like any customer: my AC is blowing warm air, I need help today, and I have a budget. I don't name a tool. ChatGPT opens Velaire, discovers its WebMCP capabilities, and returns service fit, pricing, availability, and warranty evidence. Everything is visibly synthetic for this demo.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> While it checks, notice that I never named a tool.
+> It's checking now, so I'll give it a second.
 
 **[EDIT: Remove only silent model-processing time. Hold for one second on the returned evidence.]**
 
@@ -91,11 +93,11 @@ Create a synthetic service request for today from 2 to 4 PM using Lincoln Park, 
 
 **SAY:**
 
-> The second request creates one shared, versioned case. It collects bounded service details—not payment or personal contact data—and creates a separate private invitation for the owner.
+> That's enough to continue. I ask it to open a request, and Velaire creates a shared, versioned case with what the owner needs—but no payment or contact information—plus a private owner invitation.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> Now we wait for the case and owner invitation.
+> That shared case is being created now.
 
 **[ACTION: Show `Awaiting Provider`, revision 1, and the case code. End this clip before copying the private invitation.]**
 
@@ -118,11 +120,11 @@ Wait briefly for the owner’s first reply and summarize it when it arrives. Sto
 
 **SAY:**
 
-> The customer agent waits in short, cancellable rounds. This is deliberately bounded to two minutes; it is not a permanent subscription or background wake-up.
+> Now ChatGPT waits for a reply in short, cancellable rounds. It won't pretend to wait forever. While it checks, I'll move to the owner.
 
 **OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
 
-> While it waits, I am moving to the owner side.
+> While it checks, I'll switch to the owner.
 
 **[ACTION: Once waiting begins, cut to the maximized OWNER window.]**
 
@@ -138,21 +140,21 @@ Read the customer’s request. Prepare a $195 offer for today from 2 to 4 PM wit
 
 **SAY:**
 
-> This is a separate owner ChatGPT using the private invitation. Its agent can prepare exact terms, but the draft remains invisible to the customer. Staging does not advance the agreement.
+> This is a separate ChatGPT session on the private owner page. It reads the request and prepares a $195 offer. But the customer sees nothing yet: the draft is private, and the agent can't send it.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> The agent is preparing; nothing is public yet.
+> The offer's coming together, but nothing has been sent.
 
 **[ACTION: Hold on `PRIVATE DRAFT` and `AWAITING HUMAN`. Click `Human: send offer`.]**
 
 **SAY AS YOU CLICK:**
 
-> Only this visible owner action publishes the offer and advances the case to revision two.
+> I'm acting as the owner, so I review the terms and press Send. That publishes the offer and creates the next revision.
 
 **OPTIONAL TRANSITION LINE — 2–3 SECONDS:**
 
-> Now we wait for the customer chat to receive it.
+> I'll give the customer chat a second to catch up.
 
 ### Clip 5 — Customer receives, visualizes, routes, and counters
 
@@ -166,11 +168,11 @@ Show me the current case history and the driving plan to my confirmed synthetic 
 
 **SAY:**
 
-> The first customer call receives the owner's revision in its own chat. Velaire also returns a visual case history and route-ready links. The fifteen-to-thirty-minute travel band is synthetic—there is no live traffic, GPS, geocoding, or guaranteed arrival. The customer sends a counter without accepting an offer.
+> And there it is, back in the customer's ChatGPT. In one ordinary request, I ask for the history, a driving plan, and a $175 counter. The map link is real, but the travel range is explicitly synthetic—not live traffic or technician GPS. The customer can negotiate without accidentally accepting.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> The counter is being recorded as the next revision.
+> The counter is going onto the shared case now.
 
 **[ACTION: Briefly show the visual history and route card. Do not open the map yet.]**
 
@@ -186,11 +188,11 @@ Check the customer’s latest reply. If they countered, prepare a revised $175 o
 
 **SAY:**
 
-> The owner agent retrieves the customer's counter from the same durable case. It prepares a revised offer, but again waits for the owner to send it.
+> Back with the owner, the counter is already on the same case. The agent prepares the revision; the owner sends it.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> Now we wait for the revised terms to appear.
+> It's preparing the new terms now.
 
 **[ACTION: Show the $175 private draft. Click `Human: send offer`.]**
 
@@ -206,11 +208,11 @@ Compare the first and revised offers. Prepare the latest one for booking, but st
 
 **SAY:**
 
-> The comparison uses stored terms, not screenshots: twenty dollars less, with the same time and deposit. Preparing returns awaiting human. I confirm the displayed version myself, producing an immutable synthetic receipt without payment or a real appointment.
+> ChatGPT compares the stored offers: $20 less, the same window and deposit, and no after-hours surcharge. It can prepare version two, but it can't accept it. I confirm the terms, and Velaire locks them into an immutable demo receipt. No payment is taken, and no real appointment is booked.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> The accepted version is now being written to the receipt.
+> There's the receipt; the accepted promise is now fixed.
 
 **[ACTION: Show the comparison and `AWAITING HUMAN`. Click `I confirm these terms`. Then paste C6.]**
 
@@ -232,11 +234,11 @@ Read the confirmed booking. Prepare a $145 changed-work request for a capacitor 
 
 **SAY:**
 
-> Additional work becomes a separate change order instead of silently rewriting the accepted agreement.
+> Now the job changes. The owner finds a weak capacitor and proposes another $145. Velaire doesn't rewrite the accepted deal; it creates a separate change order.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> Now we wait for that change to reach the customer.
+> I'll give the customer side a second to catch up.
 
 **[ACTION: Show the private changed-work draft. Click `Human: send change order`. Cut to CUSTOMER and paste C7.]**
 
@@ -246,11 +248,11 @@ Compare the changed-work request with what I accepted. Tell me the proposed tota
 
 **SAY:**
 
-> Against the receipt, one hundred seventy-five plus one hundred forty-five becomes three hundred twenty dollars. Parts were excluded, thirty minutes are added, and the customer still decides.
+> The customer agent checks that against the receipt: $175 plus $145 is $320. Parts were excluded, the visit is 30 minutes longer, and the customer still decides.
 
 **OPTIONAL WAIT LINE — 2–3 SECONDS:**
 
-> The accepted agreement remains unchanged until that decision.
+> Nothing changes until the customer makes that decision.
 
 ### Clip 9 — Graph, map, and closing statement
 
@@ -260,7 +262,7 @@ Compare the changed-work request with what I accepted. Tell me the proposed tota
 
 **SAY:**
 
-> This is the pattern for service-industry websites: agents discover, verify, communicate, and prepare; humans approve; every promise remains versioned and auditable.
+> We can open the whole agreement as a graph and hand the route to a real map provider. HVAC is only the example. This is a reusable agreement layer for service businesses: AI handles coordination and comparison; people control every promise.
 
 **[ACTION: Stop. Do not add an improvised closing.]**
 
