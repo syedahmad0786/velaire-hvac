@@ -10,7 +10,7 @@ import {
   type Command,
   type RuntimeContext,
 } from "./domain";
-import { PromiseDiffStore } from "./store";
+import { capabilityUrl, PromiseDiffStore } from "./store";
 import { installWebMCP, waitForOwnerReply } from "./webmcp";
 import { compareQuoteContext, createProjectPlan, getMarketContext, searchSite, summarizeMetrics } from "./operations";
 import { caseVisuals, planServiceRoute } from "./case-visuals";
@@ -43,6 +43,45 @@ function openCase(store: PromiseDiffStore) {
 }
 
 describe("Velaire agreement boundary", () => {
+  it("preserves role capability URLs and fails closed instead of using stale local state", async () => {
+    const ownerUrl = new URL(capabilityUrl("https://velaire.example", "owner", "SC-ONE", "owner-secret"));
+    expect(ownerUrl.pathname).toBe("/demo/owner");
+    expect(ownerUrl.searchParams.get("case")).toBe("SC-ONE");
+    expect(ownerUrl.searchParams.get("access")).toBe("owner-secret");
+
+    const local = new PromiseDiffStore(initialState());
+    const caseId = openCase(local);
+    const seed = local.getSnapshot();
+    const fakeWindow = {
+      location: {
+        hostname: "velaire.example",
+        origin: "https://velaire.example",
+        pathname: "/demo/customer",
+        search: "?case=SC-OTHER&access=customer-secret",
+      },
+      localStorage: { getItem: vi.fn(), setItem: vi.fn() },
+      sessionStorage: { getItem: vi.fn(), setItem: vi.fn() },
+      dispatchEvent: vi.fn(),
+    } as unknown as Window;
+    vi.stubGlobal("window", fakeWindow);
+    try {
+      const live = new PromiseDiffStore(seed);
+      const before = structuredClone(live.getSnapshot());
+      const result = await live.dispatchShared({
+        type: "CUSTOMER_MESSAGE",
+        caseId,
+        expectedRevision: 1,
+        kind: "question",
+        text: "Please confirm availability.",
+      }, "velaire_submit_case_message", "customer_agent");
+      expect(result).toMatchObject({ ok: false, code: "NOT_FOUND", beforeRevision: 0, afterRevision: 0 });
+      expect(result.didNot).toContain("No browser-local fallback ran.");
+      expect(live.getSnapshot()).toEqual(before);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("keeps market context sourced and project plans bounded", () => {
     const market = getMarketContext(3);
     expect(market.observations).toHaveLength(3);

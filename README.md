@@ -136,7 +136,7 @@ There is intentionally no agent tool for sending an owner draft, confirming a bo
 - **Revision:** state-changing tools must match the current case revision.
 - **Offer:** only the latest sent and unexpired offer can be prepared.
 - **Human:** sending offers, confirming booking, and deciding change orders stay in visible UI.
-- **Async:** each wait is capped at 15 seconds, cleans up on `AbortSignal`, and can be cooperatively repeated for at most 120 seconds. The browser host may end any call.
+- **Async:** each wait is a single call capped at 15 seconds and cleans up on `AbortSignal`. After a timeout, the agent returns control instead of looping or driving the browser.
 - **Capability:** customer and owner links carry separate random bearer capabilities; the database stores only their SHA-256 hashes.
 - **Evidence:** reviews are marked synthetic, untrusted, and not independently verified.
 - **Official-source freshness:** permit and incentive output states when each route was checked and refuses to decide eligibility.

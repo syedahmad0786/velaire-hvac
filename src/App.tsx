@@ -9,7 +9,7 @@ import {
   type ServiceCase,
   type ServiceOffer,
 } from "./domain";
-import { promiseDiffStore } from "./store";
+import { capabilityUrl, promiseDiffStore, type SharedRole } from "./store";
 import { caseVisuals } from "./case-visuals";
 import { installWebMCP, type ToolRoute, type WebMCPStatus } from "./webmcp";
 import {
@@ -64,6 +64,14 @@ const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "curren
 const shortTime = (value: string) => new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(new Date(value));
 const titleCase = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 const capabilityLabel = (value: string) => titleCase(value.replace(/^velaire_/, ""));
+
+function caseHref(role: SharedRole, caseId: string): string {
+  const session = promiseDiffStore.getSharedSession();
+  if (session?.role === role && session.caseId === caseId) {
+    return capabilityUrl(window.location.origin, role, caseId, session.accessToken);
+  }
+  return `${role === "owner" ? "/demo/owner" : "/demo/customer"}?case=${encodeURIComponent(caseId)}`;
+}
 
 function Logo() {
   return <a className="logo" href="/" aria-label="Velaire Heating and Air home">
@@ -121,8 +129,8 @@ function AgentGuide({ status, serviceCase, compact = false, role = "customer" }:
   const [copyLabel, setCopyLabel] = useState("Copy message");
   const prompt = serviceCase
     ? role === "owner"
-      ? `Act as Velaire's owner assistant for shared service case ${serviceCase.id}. Read the current case, prepare the next appropriate reply or structured offer, and ask me to review and press the visible Send button. After I send it, keep checking for a customer reply in short rounds for no more than two minutes. Never send or approve on my behalf.`
-      : `Act as my customer assistant for shared service case ${serviceCase.id}. Read the latest case, summarize anything new, and show the visual case history. If my location is confirmed, show the driving route and a clearly labeled arrival planning range. If you send a question or counteroffer, keep checking for the owner's reply in short rounds for no more than two minutes. Stop before every confirmation, payment, booking, or changed-work decision.`
+      ? `Use the Velaire page already open. Check this owner case, tell me what the customer needs, and prepare the next appropriate reply or offer for my review. Do not navigate or reload. I will press the visible Send button myself.`
+      : `Use the Velaire page already open. Read my service case, tell me what changed, and show its current terms and visual summary. Do not navigate or reload. Stop before every booking, payment, or changed-work decision.`
     : STARTER_PROMPT;
   const connected = status?.supported === true;
   const headline = status === null
@@ -154,7 +162,7 @@ function AgentGuide({ status, serviceCase, compact = false, role = "customer" }:
           <li><span>2</span><b>Ask in the same chat</b></li>
           <li><span>3</span><b>Review and approve here</b></li>
         </ol>
-        {serviceCase && <a className="active-case-link" href={`/demo/customer?case=${serviceCase.id}&judge=1`}><span>ACTIVE CASE</span><b>{serviceCase.id} · revision {serviceCase.revision}</b></a>}
+        {serviceCase && <a className="active-case-link" href={caseHref(role, serviceCase.id)}><span>ACTIVE CASE</span><b>{serviceCase.id} · revision {serviceCase.revision}</b></a>}
       </div>
       <div className="agent-prompt-panel">
         <label htmlFor={`agent-prompt-${compact ? "desk" : "home"}`}>Message to send in your ChatGPT chat</label>
@@ -564,8 +572,9 @@ function CustomerPage({ status }: { status: WebMCPStatus | null }) {
   const state = usePromiseDiffState();
   const params = new URLSearchParams(window.location.search);
   const selected = params.get("case");
-  const serviceCase = state.cases.find((item) => item.id === selected) ?? (selected ? undefined : state.cases[0]);
-  const shared = promiseDiffStore.getSharedSession()?.role === "customer";
+  const serviceCase = selected ? state.cases.find((item) => item.id === selected) : undefined;
+  const session = promiseDiffStore.getSharedSession();
+  const shared = session?.role === "customer" && session.caseId === selected;
   return <main className="app-page customer-page">
     <div className="demo-ribbon"><SyntheticFlag /><span>All businesses, people, reviews, prices, bookings, and records on this page are fictional.</span><button onClick={() => { if (window.confirm(shared ? "Leave this shared fictional case on this device? The durable demo record will remain available through its private links." : "Reset every fictional Velaire service case in this browser?")) { promiseDiffStore.reset(); window.history.replaceState({}, "", "/demo/customer"); } }}>Reset demo</button></div>
     <AgentGuide status={status} serviceCase={serviceCase} compact />
@@ -577,13 +586,16 @@ function OwnerPage({ status }: { status: WebMCPStatus | null }) {
   const state = usePromiseDiffState();
   const params = new URLSearchParams(window.location.search);
   const requested = params.get("case");
-  const selected = state.cases.find((item) => item.id === requested) ?? state.cases[0];
+  const session = promiseDiffStore.getSharedSession();
+  const authorizedCaseId = session?.role === "owner" ? session.caseId : undefined;
+  const selected = requested === authorizedCaseId ? state.cases.find((item) => item.id === authorizedCaseId) : undefined;
+  const accessibleCases = selected ? [selected] : [];
   return <main className="app-page owner-page">
     <div className="demo-ribbon owner"><SyntheticFlag /><span>Private owner capability · use this URL only in the owner chat.</span></div>
     <AgentGuide status={status} serviceCase={selected} compact role="owner" />
-    <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Shared service case</h1><p>The owner agent may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{state.cases.length}</strong><span>accessible demo case</span></div></div>
+    <div className="owner-title"><div><p className="eyebrow">Velaire operations desk</p><h1>Shared service case</h1><p>The owner agent may stage. A human owner sends every customer-visible commitment.</p></div><div className="queue-count"><strong>{accessibleCases.length}</strong><span>accessible demo case</span></div></div>
     {selected ? <div className="owner-layout">
-      <aside className="case-queue"><h2>Cases</h2>{state.cases.map((item) => <a className={item.id === selected.id ? "selected" : ""} href={`/demo/owner?case=${item.id}`} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
+      <aside className="case-queue"><h2>Cases</h2>{accessibleCases.map((item) => <a className="selected" href={caseHref("owner", item.id)} key={item.id}><span><b>{item.id}</b><small>{item.problemSummary}</small></span><StatusPill status={item.status} /></a>)}</aside>
       <section className="owner-work"><div className="owner-case-meta"><div><span>SELECTED CASE</span><h2>{selected.problemSummary}</h2></div><a href={caseVisuals(selected, window.location.origin).route?.directions.googleMapsUrl ?? caseVisuals(selected, window.location.origin).location.googleMapsUrl} target="_blank" rel="noreferrer">Open driving route ↗</a></div><TermsBar serviceCase={selected} /><OwnerControls serviceCase={selected} /><Timeline serviceCase={selected} /><AuditRail audit={state.audit} caseId={selected.id} /></section>
     </div> : <div className="empty-state"><span>NO CAPABILITY</span><h2>Open the private owner invite from the customer case.</h2><p>A case cannot be discovered by ID alone; the owner URL carries a separate capability token.</p><a className="button primary" href="/demo/customer">Open customer room</a></div>}
   </main>;

@@ -16,11 +16,19 @@ type Listener = () => void;
 type Actor = AuditEvent["actor"];
 export type SharedRole = "customer" | "owner";
 
-type SharedSession = {
+export type SharedSession = {
   caseId: string;
   accessToken: string;
   role: SharedRole;
 };
+
+export function capabilityUrl(origin: string, role: SharedRole | "graph", caseId: string, accessToken: string): string {
+  const path = role === "owner" ? "/demo/owner" : role === "graph" ? `/case-graph/${encodeURIComponent(caseId)}` : "/demo/customer";
+  const url = new URL(path, origin);
+  url.searchParams.set("case", caseId);
+  url.searchParams.set("access", accessToken);
+  return url.toString();
+}
 
 type SharedResponse = {
   result: ToolResult;
@@ -66,7 +74,8 @@ export class PromiseDiffStore {
 
   constructor(seed?: AppState) {
     this.state = seed ? structuredClone(seed) : loadState();
-    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+    if (liveSharedApiAvailable() && !this.shared) this.state = initialState();
+    if (typeof window !== "undefined" && !liveSharedApiAvailable() && "BroadcastChannel" in window) {
       this.channel = new BroadcastChannel(CHANNEL_NAME);
       this.channel.addEventListener("message", (event: MessageEvent<unknown>) => {
         if (!isAppState(event.data)) return;
@@ -124,8 +133,8 @@ export class PromiseDiffStore {
         return payload.result;
       }
       const caseId = payload.result.caseId;
-      const customerUrl = this.capabilityUrl("customer", caseId, payload.capabilities.customer);
-      const ownerInviteUrl = this.capabilityUrl("owner", caseId, payload.capabilities.owner);
+      const customerUrl = capabilityUrl(window.location.origin, "customer", caseId, payload.capabilities.customer);
+      const ownerInviteUrl = capabilityUrl(window.location.origin, "owner", caseId, payload.capabilities.owner);
       this.shared = { caseId, role: "customer", accessToken: payload.capabilities.customer };
       this.ownerInviteUrl = ownerInviteUrl;
       window.sessionStorage.setItem(`velaire:owner-invite:${caseId}`, ownerInviteUrl);
@@ -137,13 +146,24 @@ export class PromiseDiffStore {
           ...(payload.result.data as object),
           customerUrl,
           ownerInviteUrl,
-          caseGraphUrl: this.capabilityUrl("graph", caseId, payload.capabilities.customer),
+          caseGraphUrl: capabilityUrl(window.location.origin, "graph", caseId, payload.capabilities.customer),
           sharingInstruction: "Give the private owner invite URL to the owner chat. Do not post it publicly.",
         },
       };
     }
     if (!this.shared || !("caseId" in command) || command.caseId !== this.shared.caseId) {
-      return this.dispatch(command, operation, actor);
+      const caseId = "caseId" in command && typeof command.caseId === "string" ? command.caseId : undefined;
+      return {
+        ok: false,
+        code: "NOT_FOUND",
+        caseId,
+        beforeRevision: 0,
+        afterRevision: 0,
+        effect: "This live page is not authorized for the requested shared case.",
+        didNot: ["No browser-local fallback ran.", "No shared case state changed."],
+        humanActionRequired: true,
+        nextActions: ["Reopen the complete private capability URL for this case and role."],
+      };
     }
     const payload = await this.callShared({
       action: "command",
@@ -214,14 +234,6 @@ export class PromiseDiffStore {
     }
     this.channel?.postMessage(next);
     this.emit();
-  }
-
-  private capabilityUrl(role: SharedRole | "graph", caseId: string, accessToken: string): string {
-    const path = role === "owner" ? "/demo/owner" : role === "graph" ? `/case-graph/${encodeURIComponent(caseId)}` : "/demo/customer";
-    const url = new URL(path, window.location.origin);
-    url.searchParams.set("case", caseId);
-    url.searchParams.set("access", accessToken);
-    return url.toString();
   }
 
   private async callShared(body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {

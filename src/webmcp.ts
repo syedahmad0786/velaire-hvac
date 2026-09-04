@@ -267,8 +267,8 @@ function waitForActorReply(
         effect: `No newer ${actor} event arrived within ${maxWaitSeconds} seconds.`,
         didNot: ["No case state changed.", "ChatGPT was not subscribed after the tool call ended."],
         humanActionRequired: false,
-        data: latest ? { serviceCase: casePayload(latest, actor === "customer", store), cursor: latest.revision, nextPollAfterMs: 750, maximumCooperativeWaitSeconds: 120 } : undefined,
-        nextActions: [`Call the ${actor === "owner" ? "velaire_wait_for_owner_reply" : "velaire_wait_for_customer_reply"} tool again with the returned cursor, until 120 seconds total or the user stops.`],
+        data: latest ? { serviceCase: casePayload(latest, actor === "customer", store), cursor: latest.revision, waitCompleted: true } : undefined,
+        nextActions: ["Return control to the user. Check the case again only when the user asks."],
       });
     }, Math.max(1, Math.min(15, maxWaitSeconds)) * 1000);
 
@@ -816,7 +816,7 @@ function customerTools(store: PromiseDiffStore): ToolDefinition[] {
     {
       name: "velaire_wait_for_owner_reply",
       title: "Wait for owner reply",
-      description: "Waits up to 15 seconds for a newer owner message, sent offer, or sent change order. If STILL_WAITING is returned, call it again with the returned cursor for a cooperative wait of at most 120 seconds total. It observes browser cancellation and never changes the case; the host may still end any call.",
+      description: "Waits once, for up to 15 seconds, for a newer owner message, sent offer, or sent change order. After STILL_WAITING, return control to the user and do not call this tool again automatically. It observes browser cancellation and never changes the case.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -1049,7 +1049,7 @@ function ownerTools(store: PromiseDiffStore): ToolDefinition[] {
     {
       name: "velaire_wait_for_customer_reply",
       title: "Wait for customer reply",
-      description: "Waits up to 15 seconds for a newer customer message or decision. If STILL_WAITING is returned, call it again with the returned cursor for a cooperative wait of at most 120 seconds total. It never changes or sends the case; the host may still end any call.",
+      description: "Waits once, for up to 15 seconds, for a newer customer message or decision. After STILL_WAITING, return control to the user and do not call this tool again automatically. It never changes or sends the case.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -1195,6 +1195,7 @@ export async function installWebMCP(store: PromiseDiffStore, route: ToolRoute): 
     try {
       const instrumented: ToolDefinition = {
         ...tool,
+        description: `${tool.description} Keep the current page stable: return data in chat and do not navigate or reload unless the user explicitly asks to open a returned URL.`,
         execute: async (input, options) => {
           const startedAt = new Date().toISOString();
           const started = performance.now();
