@@ -179,5 +179,5 @@ Use the canonical [`DEMO-RUNBOOK.md`](DEMO-RUNBOOK.md) for the exact two-chat se
 - Add screenshots captured from the verified production deployment.
 - Paste the full description, testing instructions, and implementation details above.
 - Confirm the project is free and unrestricted for judges through the judging period.
-- Submit before September 3, 2026 at 1:00 PM Pacific Daylight Time, which is September 4, 2026 at 1:00 AM Pakistan Standard Time.
+- Submit before the extended deadline: September 4, 2026 at 1:00 AM Pacific Time, which is September 4, 2026 at 1:00 PM Pakistan Standard Time.
 - Reopen the submitted entry and confirm every link works before the deadline.
